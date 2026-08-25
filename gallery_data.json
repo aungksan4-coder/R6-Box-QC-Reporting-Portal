@@ -1,0 +1,191 @@
+{
+  "overrides": {
+    "sheet_card_0": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-019Y04ZANM-B01",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_1": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-UKOF01ZANM-F06",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_2": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-062Y01ZANM-F03",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_3": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-065F10ZCNM-B03",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_4": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-070G25ZCNM-D01",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_5": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-060Y08ZANM-G07",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_6": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-ATIX13ZPIM-G05",
+      "action": "No Take Action",
+      "maint": "need to fix pencil kit holder",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_7": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-SYRF01ZPIM-B08",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_8": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-SYRF01ZPIM-B08",
+      "action": "No Take Action",
+      "maint": "Need Box Maint",
+      "img1": null,
+      "img2": null
+    },
+    "sheet_card_9": {
+      "date_hdr": "Date - 21-Jan-26 (MDY)",
+      "tkt_id": "TKT-10070273",
+      "box_id": "CA2-UKWF05ZANM-G01",
+      "action": "No Take Action",
+      "maint": "Need Box Maint"
+    },
+    "box_sheet_card_Need To Clean Box Inside_7": {
+      "date_hdr": "Date - 24-Aug-26 (MDY)",
+      "tkt_id": "",
+      "box_id": "CA2-082F13ZANM-D01",
+      "action": "Fixed",
+      "maint": "ANM",
+      "img1": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_7_photo1.png",
+      "img2": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_7_photo2.png"
+    },
+    "box_sheet_card_Need To Clean Box Inside_8": {
+      "date_hdr": "Date - 24-Aug-26 (MDY)",
+      "tkt_id": "",
+      "box_id": "CA2-077G10ZCNM-D01",
+      "action": "Fixed",
+      "maint": "CNM",
+      "img1": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_8_photo1.png",
+      "img2": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_8_photo2.png"
+    },
+    "box_sheet_card_Need To Clean Box Inside_9": {
+      "date_hdr": "Date - 24-Aug-26 (TIS)",
+      "tkt_id": "",
+      "box_id": "CA2-ECRF04ZTIS-C03",
+      "action": "Fixed",
+      "maint": "TIS",
+      "img1": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_9_photo1.png",
+      "img2": "uploaded_photos\\box_sheet_card_Need To Clean Box Inside_9_photo2.png"
+    },
+    "box_sheet_card_Need To Clean Box Inside_10": {
+      "date_hdr": "Date - 24-Aug-26 (TIS)",
+      "tkt_id": "",
+      "box_id": "CA2-SSNF06ZTIS-E02",
+      "action": "Fixed",
+      "maint": "TIS",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_11": {
+      "date_hdr": "Date - 24-Aug-26 (MDY)",
+      "tkt_id": "",
+      "box_id": "CA2-UKNF44ZCIM-C06",
+      "action": "Fixed",
+      "maint": "CIM",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_12": {
+      "date_hdr": "Date - 24-Aug-26 (MDY)",
+      "tkt_id": "",
+      "box_id": "CA2-SRTF14ZANM-B03",
+      "action": "Fixed",
+      "maint": "ANM",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_13": {
+      "date_hdr": "Date - 24-Aug-26 (TIS)",
+      "tkt_id": "",
+      "box_id": "CA2-YHOF02ZTIS-G02",
+      "action": "Fixed",
+      "maint": "TIS",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_14": {
+      "date_hdr": "Date - 24-Aug-26 (TIS)",
+      "tkt_id": "",
+      "box_id": "CA2-NBAF01ZTIS-D08",
+      "action": "Fixed",
+      "maint": "TIS",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_15": {
+      "date_hdr": "Date - 24-Aug-26 (MEO)",
+      "tkt_id": "",
+      "box_id": "CA2-NTNV04ZMEO-B06",
+      "action": "Fixed",
+      "maint": "MEO",
+      "img1": null,
+      "img2": null
+    },
+    "box_sheet_card_Need To Clean Box Inside_16": {
+      "date_hdr": "Date - 24-Aug-26 (MDY)",
+      "tkt_id": "",
+      "box_id": "CA2-UKWA13ZMYM-G07",
+      "action": "Fixed",
+      "maint": "MYM",
+      "img1": null,
+      "img2": null
+    }
+  },
+  "deleted": [
+    "box_sheet_card_Need To Clean Box Inside_2",
+    "box_sheet_card_Need To Clean Box Inside_3",
+    "box_sheet_card_Need To Clean Box Inside_4",
+    "box_sheet_card_Need To Clean Box Inside_5",
+    "box_sheet_card_Need To Clean Box Inside_6",
+    "box_sheet_card_Need To Clean Box Inside_1",
+    "box_sheet_card_Need To Clean Box Inside_0"
+  ]
+}
