@@ -32,7 +32,7 @@ def save_uploaded_file(uploaded_file, key, photo_num):
         return None
     ext = os.path.splitext(uploaded_file.name)[1]
     filename = f"{key}_photo{photo_num}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    filepath = os.path.join(UPLOAD_DIR, filename).replace("\\", "/")
     with open(filepath, "wb") as f:
         f.write(uploaded_file.getbuffer())
     return filepath
