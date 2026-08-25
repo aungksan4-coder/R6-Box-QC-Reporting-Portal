@@ -404,6 +404,13 @@ if selected_page == "Key Report Data":
 
     st.sidebar.markdown("---")
 
+    # Shared Date Range Picker for all 3 sub-views
+    global_min_d = pd.to_datetime("2024-01-01").date()
+    global_max_d = pd.to_datetime("2030-12-31").date()
+    s_d, e_d = get_persistent_date_range("key_report_global", global_min_d, global_max_d)
+
+    st.sidebar.markdown("---")
+
     if category == "Key Raw":
         st.sidebar.header("⚙️ Column Mapping (Key Raw)")
         try:
@@ -422,8 +429,6 @@ if selected_page == "Key Report Data":
             valid_dates = df_raw[date_col].dropna()
 
             if not valid_dates.empty:
-                min_d, max_d = valid_dates.min().date(), valid_dates.max().date()
-                s_d, e_d = get_persistent_date_range("key_raw", min_d, max_d)
                 df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)]
                 date_hdr = f"({s_d.strftime('%d-%b-%Y')} to {e_d.strftime('%d-%b-%Y')})"
             else:
@@ -480,9 +485,6 @@ if selected_page == "Key Report Data":
             valid_dates = df_raw[date_col].dropna()
 
             if not valid_dates.empty:
-                min_d, max_d = valid_dates.min().date(), valid_dates.max().date()
-                s_d, e_d = get_persistent_date_range("box_raw", min_d, max_d)
-
                 df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)]
                 
                 lw_s_d, lw_e_d = s_d - timedelta(days=7), e_d - timedelta(days=7)
@@ -574,8 +576,6 @@ if selected_page == "Key Report Data":
             valid_dates = df_raw[date_col].dropna()
 
             if not valid_dates.empty:
-                min_d, max_d = valid_dates.min().date(), valid_dates.max().date()
-                s_d, e_d = get_persistent_date_range("cross_team_raw", min_d, max_d)
                 df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)].copy()
                 date_hdr = f"({s_d.strftime('%d-%b-%Y')} to {e_d.strftime('%d-%b-%Y')})"
             else:
