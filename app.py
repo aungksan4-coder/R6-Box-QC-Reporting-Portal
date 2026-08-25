@@ -744,7 +744,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
     # --- VIEW 2: BRACKET SUMMARY ---
     elif view_mode == "Bracket Summary":
-        st.markdown("### 🛠️ Bracket Summary Analysis")
 
         try:
             df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
@@ -778,8 +777,8 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             st.error(f"Error loading 'Bracket Issue': {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
-    elif view_mode == "📷 Photo Evidence Gallery":
-        st.markdown("### 📷 MSOps6 & FiberOps6 Photo Inspection Gallery")
+    elif view_mode == "📷 Photo for Box Fixed & Issues":
+        st.markdown("### 📷 Issues & Fixed Photos")
 
         if "box_store" not in st.session_state:
             st.session_state.box_store = load_gallery_store()
