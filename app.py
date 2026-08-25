@@ -934,7 +934,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             st.session_state.box_gallery_overrides[card_key]["img1"] = None
                             save_box_state()
                             st.rerun()
-else:
+    else:
         up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
         if up_img1 is not None:
             cloud_url = upload_to_imgbb(up_img1)
