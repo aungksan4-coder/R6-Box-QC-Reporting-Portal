@@ -6,36 +6,51 @@ from PIL import Image
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from supabase import create_client
 
-# Directories for persistence
-UPLOAD_DIR = "uploaded_photos"
-DATA_FILE = "gallery_data.json"
+@st.cache_resource
+def init_supabase():
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+supabase = init_supabase()
+BUCKET_NAME = "box-gallery"
 
 def load_gallery_store():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            return {"overrides": {}, "deleted": []}
-    return {"overrides": {}, "deleted": []}
+    try:
+        response = supabase.storage.from_(BUCKET_NAME).download("gallery_data.json")
+        return json.loads(response.decode("utf-8"))
+    except Exception:
+        return {"overrides": {}, "deleted": []}
 
 def save_gallery_store(store):
-    with open(DATA_FILE, "w") as f:
-        json.dump(store, f, indent=2)
+    try:
+        json_bytes = json.dumps(store).encode("utf-8")
+        supabase.storage.from_(BUCKET_NAME).upload(
+            path="gallery_data.json",
+            file=json_bytes,
+            file_options={"upsert": "true", "content-type": "application/json"}
+        )
+    except Exception as e:
+        st.error(f"Cloud sync error: {e}")
 
 def save_uploaded_file(uploaded_file, key, photo_num):
     if uploaded_file is None:
         return None
-    ext = os.path.splitext(uploaded_file.name)[1]
-    filename = f"{key}_photo{photo_num}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return filepath
+    try:
+        ext = os.path.splitext(uploaded_file.name)[1]
+        path = f"photos/{key}_photo{photo_num}{ext}"
+        
+        supabase.storage.from_(BUCKET_NAME).upload(
+            path=path,
+            file=uploaded_file.getvalue(),
+            file_options={"upsert": "true", "content-type": uploaded_file.type}
+        )
+        return supabase.storage.from_(BUCKET_NAME).get_public_url(path)
+    except Exception as e:
+        st.error(f"Image upload error: {e}")
+        return None
 
 def save_box_state():
     state_data = {
