@@ -49,8 +49,23 @@ def save_uploaded_file(uploaded_file, key, photo_num):
         )
         return supabase.storage.from_(BUCKET_NAME).get_public_url(path)
     except Exception as e:
-        st.error(f"Image upload error: {e}")
-        return None
+            st.error(f"Image upload error: {e}")
+            return None
+
+
+def delete_storage_file(url_or_path):
+    if not url_or_path or not isinstance(url_or_path, str):
+        return
+    try:
+        # Extract relative storage path if full public URL was provided
+        if f"/{BUCKET_NAME}/" in url_or_path:
+            path = url_or_path.split(f"/{BUCKET_NAME}/")[-1]
+        else:
+            path = url_or_path
+
+        supabase.storage.from_(BUCKET_NAME).remove([path])
+    except Exception as e:
+        st.error(f"Storage file deletion error: {e}")
 
 def save_box_state():
     state_data = {
@@ -871,9 +886,14 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
                 with del_col:
                     if st.button("🗑️ Delete Card", key=f"del_box_{card_key}", use_container_width=True):
+                        card_data_to_del = st.session_state.box_gallery_overrides.get(card_key, card_data)
+                        delete_storage_file(card_data_to_del.get("img1"))
+                        delete_storage_file(card_data_to_del.get("img2"))
+
                         st.session_state.box_deleted_card_keys.add(card_key)
                         if card_key in st.session_state.box_gallery_overrides:
                             del st.session_state.box_gallery_overrides[card_key]
+                        save_box_state()
                         st.rerun()
 
                 with txt_col:
@@ -919,6 +939,8 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     if img1_val:
                         st.image(img1_val, use_container_width=True)
                         if st.button("❌ Remove Photo 1", key=f"rm1_box_{card_key}"):
+                            old_img = st.session_state.box_gallery_overrides[card_key].get("img1")
+                            delete_storage_file(old_img)
                             st.session_state.box_gallery_overrides[card_key]["img1"] = None
                             save_box_state()
                             st.rerun()
@@ -935,6 +957,8 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     if img2_val:
                         st.image(img2_val, use_container_width=True)
                         if st.button("❌ Remove Photo 2", key=f"rm2_box_{card_key}"):
+                            old_img = st.session_state.box_gallery_overrides[card_key].get("img2")
+                            delete_storage_file(old_img)
                             st.session_state.box_gallery_overrides[card_key]["img2"] = None
                             save_box_state()
                             st.rerun()
