@@ -651,7 +651,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         [
             "Box Summary",
             "Bracket Summary",
-            "📷 Photo Evidence Gallery"
+            "📷 Photo for Box Fixed & Issues"
         ]
     )
     st.sidebar.markdown("---")
