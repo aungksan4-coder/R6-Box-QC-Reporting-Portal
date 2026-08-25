@@ -1,3 +1,5 @@
+import requests
+import base64
 import json
 import os
 import urllib.parse
@@ -146,6 +148,30 @@ def build_count_and_pct_pivots(df_subset, index_col, columns_col, id_col, expect
         pivot_cnt = pivot_cnt[expected_cols]
 
     pivot_cnt["Grand Total"] = pivot_cnt.sum(axis=1)
+    def upload_to_imgbb(uploaded_file):
+    API_KEY = "f4e4656821274b2c9b8e99cf27e60276"
+    url = "https://api.imgbb.com/1/upload"
+    
+    # 604800 seconds = exactly 7 days
+    payload = {
+        "key": API_KEY,
+        "image": base64.b64encode(uploaded_file.getvalue()).decode("utf-8"),
+        "expiration": 604800 
+    }
+    
+    try:
+        response = requests.post(url, data=payload)
+        result = response.json()
+        
+        if result.get("success"):
+            # Returns the public URL (e.g., https://i.ibb.co/xyz/photo.png)
+            return result["data"]["url"]
+        else:
+            st.error(f"Upload failed: {result['error']['message']}")
+            return None
+    except Exception as e:
+        st.error(f"Error connecting to cloud: {e}")
+        return None
     gt_row = pivot_cnt.sum(axis=0)
     gt_row.name = "Grand Total"
     
@@ -908,11 +934,15 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             save_box_state()
                             st.rerun()
                     else:
-                        up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
-                        if up_img1 is not None:
-                            saved_path = save_uploaded_file(up_img1, card_key, 1)
-                            st.session_state.box_gallery_overrides[card_key]["img1"] = saved_path
-                            save_box_state()
+                up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
+                if up_img1 is not None:
+                    with st.spinner("Uploading to cloud..."):
+                        cloud_url = upload_to_imgbb(up_img1)
+                        if cloud_url:
+                            st.session_state.box_gallery_overrides[card_key]["img1"] = cloud_url
+                            
+                            # Note: Your save_gallery_store() needs to push to Google Sheets eventually!
+                            save_gallery_store({"overrides": st.session_state.box_gallery_overrides, "deleted": list(st.session_state.box_deleted_card_keys)})
                             st.rerun()
 
                 with p_col2:
@@ -924,11 +954,15 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             save_box_state()
                             st.rerun()
                     else:
-                        up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
-                        if up_img2 is not None:
-                            saved_path = save_uploaded_file(up_img2, card_key, 2)
-                            st.session_state.box_gallery_overrides[card_key]["img2"] = saved_path
-                            save_box_state()
+                up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
+                if up_img2 is not None:
+                    with st.spinner("Uploading to cloud..."):
+                        cloud_url = upload_to_imgbb(up_img2)
+                        if cloud_url:
+                            st.session_state.box_gallery_overrides[card_key]["img2"] = cloud_url
+                            
+                            # Note: Your save_gallery_store() needs to push to Google Sheets eventually!
+                            save_gallery_store({"overrides": st.session_state.box_gallery_overrides, "deleted": list(st.session_state.box_deleted_card_keys)})
                             st.rerun()
 
         except Exception as e:
