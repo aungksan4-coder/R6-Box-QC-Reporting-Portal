@@ -147,8 +147,10 @@ def build_count_and_pct_pivots(df_subset, index_col, columns_col, id_col, expect
                 pivot_cnt[col] = 0
         pivot_cnt = pivot_cnt[expected_cols]
 
-    pivot_cnt["Grand Total"] = pivot_cnt.sum(axis=1)
-    def upload_to_imgbb(uploaded_file):
+pivot_cnt["Grand Total"] = pivot_cnt.sum(axis=1)
+    return pivot_cnt # <-- (Make sure you have your return statement here to finish the previous function!)
+
+def upload_to_imgbb(uploaded_file):
     API_KEY = "f4e4656821274b2c9b8e99cf27e60276"
     url = "https://api.imgbb.com/1/upload"
     
@@ -164,11 +166,13 @@ def build_count_and_pct_pivots(df_subset, index_col, columns_col, id_col, expect
         result = response.json()
         
         if result.get("success"):
-            # Returns the public URL (e.g., https://i.ibb.co/xyz/photo.png)
             return result["data"]["url"]
         else:
             st.error(f"Upload failed: {result['error']['message']}")
             return None
+    except Exception as e:
+        st.error(f"Error connecting to cloud: {e}")
+        return None
     except Exception as e:
         st.error(f"Error connecting to cloud: {e}")
         return None
