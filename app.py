@@ -608,7 +608,7 @@ if selected_page == "Key Report Data":
             else:
                 df_filtered, date_hdr = df_raw.copy(), ""
 
-            st.markdown(f"### Cross Team Analysis {date_hdr}")
+            st.markdown(f"### {date_hdr}")
 
             df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
 
