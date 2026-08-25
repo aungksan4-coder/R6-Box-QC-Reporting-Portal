@@ -57,18 +57,27 @@ def delete_storage_file(url_or_path):
     if not url_or_path or not isinstance(url_or_path, str):
         return
     try:
-        # Strip query parameters if present (e.g. ?t=12345)
+        # Clean query strings (e.g. ?t=12345)
         clean_url = url_or_path.split("?")[0]
-        
-        # Extract relative bucket path
+
+        # Extract the relative file path inside the bucket
         if f"/{BUCKET_NAME}/" in clean_url:
             path = clean_url.split(f"/{BUCKET_NAME}/")[-1]
+        elif "/object/public/" in clean_url:
+            path = "/".join(clean_url.split("/object/public/")[1].split("/")[1:])
         else:
             path = clean_url.lstrip("/")
 
-        supabase.storage.from_(BUCKET_NAME).remove([path])
+        # Send delete request to Supabase
+        res = supabase.storage.from_(BUCKET_NAME).remove([path])
+
+        # Supabase returns errors inside the response object rather than raising Python exceptions
+        if isinstance(res, list) and len(res) == 0:
+            st.warning(f"File not found or permission denied in bucket: {path}")
+        elif isinstance(res, dict) and res.get("error"):
+            st.error(f"Supabase Storage Error: {res['error']}")
     except Exception as e:
-        st.error(f"Storage file deletion error: {e}")
+        st.error(f"Storage file deletion exception: {e}")
 
 def save_box_state():
     state_data = {
