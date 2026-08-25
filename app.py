@@ -148,7 +148,7 @@ def build_count_and_pct_pivots(df_subset, index_col, columns_col, id_col, expect
         pivot_cnt = pivot_cnt[expected_cols]
 
 pivot_cnt["Grand Total"] = pivot_cnt.sum(axis=1)
-    return pivot_cnt
+return pivot_cnt
 
 def upload_to_imgbb(uploaded_file):
     API_KEY = "f4e4656821274b2c9b8e99cf27e60276"
