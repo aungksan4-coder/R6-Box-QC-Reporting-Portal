@@ -955,7 +955,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             save_box_state()
                             st.rerun()
                     else:
-                up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
+                        up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
                 if up_img2 is not None:
                     with st.spinner("Uploading to cloud..."):
                         cloud_url = upload_to_imgbb(up_img2)
