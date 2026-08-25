@@ -784,13 +784,16 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             # Display Controls
             ctrl_col1, ctrl_col2 = st.columns([3, 1])
             with ctrl_col1:
-                max_items = st.slider(
-                    "Max items to display",
-                    min_value=1,
-                    max_value=50,
-                    key="box_max_items",
-                    on_change=sync_max_items
-                )
+                if "max_items" in st.query_params:
+    saved_value = int(st.query_params["max_items"])
+else:
+    saved_value = 10 
+
+# 2. Create the slider using that saved value
+max_items = st.slider("Max items to display", min_value=1, max_value=50, value=saved_value)
+
+# 3. Instantly update the URL whenever someone moves the slider
+st.query_params["max_items"] = max_items
             with ctrl_col2:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("➕ Add Blank Card", key="add_box_blank_card", use_container_width=True):
