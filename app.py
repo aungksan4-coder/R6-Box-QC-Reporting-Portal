@@ -173,9 +173,6 @@ def upload_to_imgbb(uploaded_file):
     except Exception as e:
         st.error(f"Error connecting to cloud: {e}")
         return None
-    except Exception as e:
-        st.error(f"Error connecting to cloud: {e}")
-        return None
     gt_row = pivot_cnt.sum(axis=0)
     gt_row.name = "Grand Total"
     
