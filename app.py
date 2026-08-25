@@ -57,11 +57,14 @@ def delete_storage_file(url_or_path):
     if not url_or_path or not isinstance(url_or_path, str):
         return
     try:
-        # Extract relative storage path if full public URL was provided
-        if f"/{BUCKET_NAME}/" in url_or_path:
-            path = url_or_path.split(f"/{BUCKET_NAME}/")[-1]
+        # Strip query parameters if present (e.g. ?t=12345)
+        clean_url = url_or_path.split("?")[0]
+        
+        # Extract relative bucket path
+        if f"/{BUCKET_NAME}/" in clean_url:
+            path = clean_url.split(f"/{BUCKET_NAME}/")[-1]
         else:
-            path = url_or_path
+            path = clean_url.lstrip("/")
 
         supabase.storage.from_(BUCKET_NAME).remove([path])
     except Exception as e:
@@ -886,9 +889,9 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
                 with del_col:
                     if st.button("🗑️ Delete Card", key=f"del_box_{card_key}", use_container_width=True):
-                        card_data_to_del = st.session_state.box_gallery_overrides.get(card_key, card_data)
-                        delete_storage_file(card_data_to_del.get("img1"))
-                        delete_storage_file(card_data_to_del.get("img2"))
+                        # Use card_data directly to guarantee getting img1 & img2 URLs
+                        delete_storage_file(card_data.get("img1"))
+                        delete_storage_file(card_data.get("img2"))
 
                         st.session_state.box_deleted_card_keys.add(card_key)
                         if card_key in st.session_state.box_gallery_overrides:
