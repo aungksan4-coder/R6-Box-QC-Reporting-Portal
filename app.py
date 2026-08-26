@@ -744,7 +744,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
     # --- VIEW 2: BRACKET SUMMARY ---
     elif view_mode == "Bracket Summary":
 
-  try:
+        try:
             df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
 
             if df_bracket_raw.empty:
