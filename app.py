@@ -584,7 +584,7 @@ if selected_page == "Key Report Data":
         except Exception as e:
             st.error(f"Error loading Box Raw view: {e}")
 
-elif category == "Cross Team Raw":
+    elif category == "Cross Team Raw":
         st.sidebar.header("⚙️ Column Mapping (Cross Team Raw)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Cross Team Raw")
@@ -608,40 +608,38 @@ elif category == "Cross Team Raw":
             else:
                 df_filtered, date_hdr = df_raw.copy(), ""
 
-            with st.container():
-                st.markdown(f"### {date_hdr}")
+            st.markdown(f"### {date_hdr}")
 
-                df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
+            df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
 
-                for reg in ["MDY", "OC"]:
-                    st.markdown(f"### **R6 {reg} DIA/ Fiber Ops/ FT-SBS**")
-                    reg_df = df_filtered[df_filtered[region_col] == reg]
+            for reg in ["MDY", "OC"]:
+                st.markdown(f"### **R6 {reg} DIA/ Fiber Ops/ FT-SBS**")
+                reg_df = df_filtered[df_filtered[region_col] == reg]
 
-                    # 1 : 1.4 ratio grants extra space to the right table for wide column titles
-                    col1, col2 = st.columns([1, 1.4])
+                col1, col2 = st.columns(2)
 
-                    with col1:
-                        st.markdown("**Box Touch Pass/ Fail Result**")
-                        cnt_pf, pct_pf = build_count_and_pct_pivots(
-                            reg_df, team_col, final_status_col, box_req_col, expected_cols=["Pass", "Fail"]
-                        )
-                        st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
-                        st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
+                with col1:
+                    st.markdown("**Box Touch Pass/ Fail Result**")
+                    cnt_pf, pct_pf = build_count_and_pct_pivots(
+                        reg_df, team_col, final_status_col, box_req_col, expected_cols=["Pass", "Fail"]
+                    )
+                    st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
+                    st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
 
-                    with col2:
-                        st.markdown("**Fail Result ( Take Action and No Take Action)**")
-                        fail_only_df = reg_df[reg_df[final_status_col].astype(str).str.strip().str.upper() == "FAIL"]
-                        cnt_fr, pct_fr = build_count_and_pct_pivots(
-                            fail_only_df, team_col, fail_status_col, box_req_col, expected_cols=["No Take Action", "Take Action"]
-                        )
-                        st.dataframe(sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending), use_container_width=True)
-                        st.dataframe(sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending), use_container_width=True)
+                with col2:
+                    st.markdown("**Fail Result ( Take Action and No Take Action)**")
+                    fail_only_df = reg_df[reg_df[final_status_col].astype(str).str.strip().str.upper() == "FAIL"]
+                    cnt_fr, pct_fr = build_count_and_pct_pivots(
+                        fail_only_df, team_col, fail_status_col, box_req_col, expected_cols=["No Take Action", "Take Action"]
+                    )
+                    st.dataframe(sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending), use_container_width=True)
+                    st.dataframe(sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending), use_container_width=True)
 
-                    st.markdown("---")
+                st.markdown("---")
 
         except Exception as e:
             st.error(f"Error loading Cross Team Raw view: {e}")
-
+            
 # ==============================================================================
 # PAGE 2: MSOps6 & FiberOps6 Box Data
 # ==============================================================================
