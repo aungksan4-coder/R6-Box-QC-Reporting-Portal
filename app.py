@@ -752,17 +752,17 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             else:
                 b1_col1, b1_col2 = st.columns(2)
 
-    with b1_col1:
-        st.markdown("### Bracket full")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
+                with b1_col1:
+                    st.markdown("### Bracket full")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
 
-    with b1_col2:
-        st.markdown("### Bracket lost")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
+                with b1_col2:
+                    st.markdown("### Bracket lost")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
 
-    st.markdown("---")
+                st.markdown("---")
 
-    b2_col1, b2_col2 = st.columns(2)
+                b2_col1, b2_col2 = st.columns(2)
 
     with b2_col1:
         st.markdown("### Bracket damage")
