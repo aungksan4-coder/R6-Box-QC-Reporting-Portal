@@ -747,7 +747,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         try:
             df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
 
-            if df_bracket_raw.empty:
+if df_bracket_raw.empty:
     st.warning("No data found in 'Bracket Issue' tab.")
 else:
     b1_col1, b1_col2 = st.columns(2)
