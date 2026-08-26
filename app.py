@@ -749,8 +749,8 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
             if df_bracket_raw.empty:
                 st.warning("No data found in 'Bracket Issue' tab.")
-else:
-    b1_col1, b1_col2 = st.columns(2)
+            else:
+                b1_col1, b1_col2 = st.columns(2)
 
     with b1_col1:
         st.markdown("### Bracket full")
