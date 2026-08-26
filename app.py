@@ -83,7 +83,7 @@ def save_box_state():
     state_data = {
         "overrides": st.session_state.get("box_gallery_overrides", {}),
         "deleted": list(st.session_state.get("box_deleted_card_keys", set())),
-        "max_items": st.session_state.get("box_max_items", 10)
+        "max_items": st.session_state.get("box_max_items", 20)
     }
     st.session_state.box_store = state_data
     save_gallery_store(state_data)
@@ -644,7 +644,6 @@ if selected_page == "Key Report Data":
 # PAGE 2: MSOps6 & FiberOps6 Box Data
 # ==============================================================================
 elif selected_page == "MSOps6 & FiberOps6 Box Data":
-    st.markdown("### 📦 MSOps6 & FiberOps6 Box Data Dashboard")
 
     view_mode = st.sidebar.radio(
         "Select Box Analysis View",
@@ -663,7 +662,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         r1_col1, r1_col2 = st.columns(2)
 
         with r1_col1:
-            st.markdown("### 🩵 Need to Clean Box Inside")
+            st.markdown("### Need to Clean Box Inside")
             try:
                 df_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
 
@@ -713,7 +712,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 st.error(f"Error loading 'Need To Clean Box Inside': {e}")
 
         with r1_col2:
-            st.markdown("### 🩷 Need to Maintain Box")
+            st.markdown("### Need to Maintain Box")
             render_city_status_pivot_and_chart("Need to maintain Box", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=6)
 
         st.markdown("---")
@@ -722,11 +721,11 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         r2_col1, r2_col2 = st.columns(2)
 
         with r2_col1:
-            st.markdown("### 💛 Need To Install Pencil Kit Holder")
+            st.markdown("### Need To Install Pencil Kit Holder")
             render_city_status_pivot_and_chart("Need To Install Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
 
         with r2_col2:
-            st.markdown("### 💚 Need To Install Cable Holder")
+            st.markdown("### Need To Install Cable Holder")
             render_city_status_pivot_and_chart("Need To Install Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
 
         st.markdown("---")
@@ -735,11 +734,11 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         r3_col1, r3_col2 = st.columns(2)
 
         with r3_col1:
-            st.markdown("### 🩵 Need To Fix Pencil Kit Holder")
+            st.markdown("### Need To Fix Pencil Kit Holder")
             render_city_status_pivot_and_chart("Need To Fix Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
 
         with r3_col2:
-            st.markdown("### 💙 Need To Fix Cable Holder")
+            st.markdown("### Need To Fix Cable Holder")
             render_city_status_pivot_and_chart("Need To Fix Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
 
     # --- VIEW 2: BRACKET SUMMARY ---
@@ -754,11 +753,11 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 b1_col1, b1_col2 = st.columns(2)
 
                 with b1_col1:
-                    st.markdown("### 🩵 Bracket full")
+                    st.markdown("### Bracket full")
                     render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
 
                 with b1_col2:
-                    st.markdown("### 💚 Bracket lost")
+                    st.markdown("### Bracket lost")
                     render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
 
                 st.markdown("---")
@@ -766,11 +765,11 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 b2_col1, b2_col2 = st.columns(2)
 
                 with b2_col1:
-                    st.markdown("### 💛 Bracket damage")
+                    st.markdown("### Bracket damage")
                     render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
 
                 with b2_col2:
-                    st.markdown("### 🩷 Need to install Bracket")
+                    st.markdown("### Need to install Bracket")
                     render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
 
         except Exception as e:
@@ -789,7 +788,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         if "box_deleted_card_keys" not in st.session_state:
             st.session_state.box_deleted_card_keys = set(st.session_state.box_store.get("deleted", []))
         if "box_max_items" not in st.session_state:
-            st.session_state.box_max_items = st.session_state.box_store.get("max_items", 10)
+            st.session_state.box_max_items = st.session_state.box_store.get("max_items", 20)
         if "box_custom_card_counter" not in st.session_state:
             st.session_state.box_custom_card_counter = 0
 
