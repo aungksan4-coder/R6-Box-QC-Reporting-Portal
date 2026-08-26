@@ -584,58 +584,90 @@ if selected_page == "Key Report Data":
         except Exception as e:
             st.error(f"Error loading Box Raw view: {e}")
 
-    elif category == "Cross Team Raw":
+elif category == "Cross Team Raw":
         st.sidebar.header("⚙️ Column Mapping (Cross Team Raw)")
         try:
-            df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Cross Team Raw")
-            cols = list(df_raw.columns)
+            with st.container():
+                df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Cross Team Raw")
+                cols = list(df_raw.columns)
 
-            team_col = st.sidebar.selectbox("Team Column (Col C)", cols, index=min(2, len(cols)-1))
-            box_req_col = st.sidebar.selectbox("Engineer Request Box (Col D)", cols, index=min(3, len(cols)-1))
-            final_status_col = st.sidebar.selectbox("Final Status Column (Col K)", cols, index=min(10, len(cols)-1))
-            region_col = st.sidebar.selectbox("Region Column (Col N)", cols, index=min(13, len(cols)-1))
-            fail_status_col = st.sidebar.selectbox("Fail Status Column (Col P)", cols, index=min(15, len(cols)-1))
+                team_col = st.sidebar.selectbox("Team Column (Col C)", cols, index=min(2, len(cols)-1))
+                box_req_col = st.sidebar.selectbox("Engineer Request Box (Col D)", cols, index=min(3, len(cols)-1))
+                final_status_col = st.sidebar.selectbox("Final Status Column (Col K)", cols, index=min(10, len(cols)-1))
+                region_col = st.sidebar.selectbox("Region Column (Col N)", cols, index=min(13, len(cols)-1))
+                fail_status_col = st.sidebar.selectbox("Fail Status Column (Col P)", cols, index=min(15, len(cols)-1))
 
-            date_cols = [c for c in cols if "date" in c.lower() or "time" in c.lower()]
-            date_col = st.sidebar.selectbox("Date Column", date_cols if date_cols else cols)
+                date_cols = [c for c in cols if "date" in c.lower() or "time" in c.lower()]
+                date_col = st.sidebar.selectbox("Date Column", date_cols if date_cols else cols)
 
-            df_raw[date_col] = pd.to_datetime(df_raw[date_col], dayfirst=True, format="mixed", errors="coerce")
-            valid_dates = df_raw[date_col].dropna()
+                df_raw[date_col] = pd.to_datetime(df_raw[date_col], dayfirst=True, format="mixed", errors="coerce")
+                valid_dates = df_raw[date_col].dropna()
 
-            if not valid_dates.empty:
-                df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)].copy()
-                date_hdr = f"({s_d.strftime('%d-%b-%Y')} to {e_d.strftime('%d-%b-%Y')})"
-            else:
-                df_filtered, date_hdr = df_raw.copy(), ""
+                if not valid_dates.empty:
+                    df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)].copy()
+                    date_hdr = f"({s_d.strftime('%d-%b-%Y')} to {e_d.strftime('%d-%b-%Y')})"
+                else:
+                    df_filtered, date_hdr = df_raw.copy(), ""
 
-            st.markdown(f"### {date_hdr}")
+                st.markdown(f"### {date_hdr}")
 
-            df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
+                df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
 
-            for reg in ["MDY", "OC"]:
-                st.markdown(f"### **R6 {reg} DIA/ Fiber Ops/ FT-SBS**")
-                reg_df = df_filtered[df_filtered[region_col] == reg]
+                # Column configs to lock width per column
+                cfg_pf = {
+                    "Team": st.column_config.Column(width="medium"),
+                    "Pass": st.column_config.Column(width="small"),
+                    "Fail": st.column_config.Column(width="small"),
+                    "Grand Total": st.column_config.Column(width="small"),
+                }
+                cfg_fr = {
+                    "Team": st.column_config.Column(width="medium"),
+                    "No Take Action": st.column_config.Column(width="small"),
+                    "Take Action": st.column_config.Column(width="small"),
+                    "Grand Total": st.column_config.Column(width="small"),
+                }
 
-                col1, col2 = st.columns(2)
+                for reg in ["MDY", "OC"]:
+                    st.markdown(f"### **R6 {reg} DIA/ Fiber Ops/ FT-SBS**")
+                    reg_df = df_filtered[df_filtered[region_col] == reg]
 
-                with col1:
-                    st.markdown("**Box Touch Pass/ Fail Result**")
-                    cnt_pf, pct_pf = build_count_and_pct_pivots(
-                        reg_df, team_col, final_status_col, box_req_col, expected_cols=["Pass", "Fail"]
-                    )
-                    st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
-                    st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
+                    # Asymmetrical column width to give right side more room
+                    col1, col2 = st.columns([1, 1.25])
 
-                with col2:
-                    st.markdown("**Fail Result ( Take Action and No Take Action)**")
-                    fail_only_df = reg_df[reg_df[final_status_col].astype(str).str.strip().str.upper() == "FAIL"]
-                    cnt_fr, pct_fr = build_count_and_pct_pivots(
-                        fail_only_df, team_col, fail_status_col, box_req_col, expected_cols=["No Take Action", "Take Action"]
-                    )
-                    st.dataframe(sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending), use_container_width=True)
-                    st.dataframe(sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending), use_container_width=True)
+                    with col1:
+                        st.markdown("**Box Touch Pass/ Fail Result**")
+                        cnt_pf, pct_pf = build_count_and_pct_pivots(
+                            reg_df, team_col, final_status_col, box_req_col, expected_cols=["Pass", "Fail"]
+                        )
+                        st.dataframe(
+                            sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending),
+                            use_container_width=True,
+                            column_config=cfg_pf
+                        )
+                        st.dataframe(
+                            sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending),
+                            use_container_width=True,
+                            column_config=cfg_pf
+                        )
 
-                st.markdown("---")
+                    with col2:
+                        st.markdown("**Fail Result ( Take Action and No Take Action)**")
+                        fail_only_df = reg_df[reg_df[final_status_col].astype(str).str.strip().str.upper() == "FAIL"]
+                        cnt_fr, pct_fr = build_count_and_pct_pivots(
+                            fail_only_df, team_col, fail_status_col, box_req_col, expected_cols=["No Take Action", "Take Action"]
+                        )
+                        st.dataframe(
+                            sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending),
+                            use_container_width=True,
+                            column_config=cfg_fr
+                        )
+                        st.dataframe(
+                            sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending),
+                            use_container_width=True,
+                            column_config=cfg_fr
+                        )
+
+                    st.markdown("---")
 
         except Exception as e:
             st.error(f"Error loading Cross Team Raw view: {e}")
