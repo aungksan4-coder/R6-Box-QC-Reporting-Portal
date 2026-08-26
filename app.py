@@ -747,220 +747,221 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         try:
             df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
 
-if df_bracket_raw.empty:
-    st.warning("No data found in 'Bracket Issue' tab.")
-else:
-    b1_col1, b1_col2 = st.columns(2)
+try:
+            if df_bracket_raw.empty:
+                st.warning("No data found in 'Bracket Issue' tab.")
+            else:
+                b1_col1, b1_col2 = st.columns(2)
 
-    with b1_col1:
-        st.markdown("### Bracket full")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
+                with b1_col1:
+                    st.markdown("### Bracket full")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
 
-    with b1_col2:
-        st.markdown("### Bracket lost")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
+                with b1_col2:
+                    st.markdown("### Bracket lost")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
 
-    st.markdown("---")
+                st.markdown("---")
 
-    b2_col1, b2_col2 = st.columns(2)
+                b2_col1, b2_col2 = st.columns(2)
 
-    with b2_col1:
-        st.markdown("### Bracket damage")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
+                with b2_col1:
+                    st.markdown("### Bracket damage")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
 
-    with b2_col2:
-        st.markdown("### Need to install Bracket")
-        render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
+                with b2_col2:
+                    st.markdown("### Need to install Bracket")
+                    render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
 
-except Exception as e:
-    st.error(f"Error loading 'Bracket Issue': {e}")
+        except Exception as e:
+            st.error(f"Error loading 'Bracket Issue': {e}")
 
-# --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
-elif view_mode == "📷 Photo for Box Fixed & Issues":
-    st.markdown("### 📷 Issues & Fixed Photos")
+    # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
+    elif view_mode == "📷 Photo for Box Fixed & Issues":
+        st.markdown("### 📷 Issues & Fixed Photos")
 
-    if "box_store" not in st.session_state:
-        st.session_state.box_store = load_gallery_store()
+        if "box_store" not in st.session_state:
+            st.session_state.box_store = load_gallery_store()
 
-    # Re-hydrate values if Streamlit pruned them when switching tabs
-    if "box_gallery_overrides" not in st.session_state:
-        st.session_state.box_gallery_overrides = st.session_state.box_store.get("overrides", {})
-    if "box_deleted_card_keys" not in st.session_state:
-        st.session_state.box_deleted_card_keys = set(st.session_state.box_store.get("deleted", []))
-    if "box_max_items" not in st.session_state:
-        st.session_state.box_max_items = st.session_state.box_store.get("max_items", 20)
-    if "box_custom_card_counter" not in st.session_state:
-        st.session_state.box_custom_card_counter = 0
+        # Re-hydrate values if Streamlit pruned them when switching tabs
+        if "box_gallery_overrides" not in st.session_state:
+            st.session_state.box_gallery_overrides = st.session_state.box_store.get("overrides", {})
+        if "box_deleted_card_keys" not in st.session_state:
+            st.session_state.box_deleted_card_keys = set(st.session_state.box_store.get("deleted", []))
+        if "box_max_items" not in st.session_state:
+            st.session_state.box_max_items = st.session_state.box_store.get("max_items", 20)
+        if "box_custom_card_counter" not in st.session_state:
+            st.session_state.box_custom_card_counter = 0
 
-    # Sidebar controls for Box Data sheet selection
-    st.sidebar.header("⚙️ Data Source & Mapping (Box Gallery)")
-    box_tabs = [
-        "Need To Clean Box Inside", 
-        "Need to maintain Box", 
-        "Need To Install Pencil Kit Holder", 
-        "Need To Install Cable Holder", 
-        "Bracket Issue"
-    ]
-    selected_tab = st.sidebar.selectbox("Select Sheet Tab", box_tabs)
+        # Sidebar controls for Box Data sheet selection
+        st.sidebar.header("⚙️ Data Source & Mapping (Box Gallery)")
+        box_tabs = [
+            "Need To Clean Box Inside", 
+            "Need to maintain Box", 
+            "Need To Install Pencil Kit Holder", 
+            "Need To Install Cable Holder", 
+            "Bracket Issue"
+        ]
+        selected_tab = st.sidebar.selectbox("Select Sheet Tab", box_tabs)
 
-    try:
-        df_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, selected_tab)
-        cols = list(df_raw.columns)
+        try:
+            df_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, selected_tab)
+            cols = list(df_raw.columns)
 
-        box_col = st.sidebar.selectbox("Box/Site ID Column", cols, index=min(3, len(cols)-1))
-        ticket_col = st.sidebar.selectbox("Ticket Column (Optional)", [None] + cols, index=0)
-        region_col = st.sidebar.selectbox("City/Region Column", cols, index=0)
-        action_col = st.sidebar.selectbox("Action Status Column", cols, index=min(5, len(cols)-1))
-        maint_col = st.sidebar.selectbox("Maintenance Status Column", cols, index=min(4, len(cols)-1))
-        
-        img_cols = [c for c in cols if any(k in c.lower() for k in ["photo", "img", "image", "url", "link", "picture"])]
-        img1_col = st.sidebar.selectbox("Photo 1 URL Column", img_cols if img_cols else cols, index=0 if img_cols else min(len(cols)-2, len(cols)-1))
-        img2_col = st.sidebar.selectbox("Photo 2 URL Column", img_cols if img_cols else cols, index=min(1, len(img_cols)-1) if len(img_cols) > 1 else min(len(cols)-1, len(cols)-1))
+            box_col = st.sidebar.selectbox("Box/Site ID Column", cols, index=min(3, len(cols)-1))
+            ticket_col = st.sidebar.selectbox("Ticket Column (Optional)", [None] + cols, index=0)
+            region_col = st.sidebar.selectbox("City/Region Column", cols, index=0)
+            action_col = st.sidebar.selectbox("Action Status Column", cols, index=min(5, len(cols)-1))
+            maint_col = st.sidebar.selectbox("Maintenance Status Column", cols, index=min(4, len(cols)-1))
+            
+            img_cols = [c for c in cols if any(k in c.lower() for k in ["photo", "img", "image", "url", "link", "picture"])]
+            img1_col = st.sidebar.selectbox("Photo 1 URL Column", img_cols if img_cols else cols, index=0 if img_cols else min(len(cols)-2, len(cols)-1))
+            img2_col = st.sidebar.selectbox("Photo 2 URL Column", img_cols if img_cols else cols, index=min(1, len(img_cols)-1) if len(img_cols) > 1 else min(len(cols)-1, len(cols)-1))
 
-        def sync_max_items():
-            save_box_state()
-
-        # Display Controls
-        ctrl_col1, ctrl_col2 = st.columns([3, 1])
-        with ctrl_col1:
-            max_items = st.slider(
-                "Max items to display",
-                min_value=1,
-                max_value=50,
-                key="box_max_items",
-                on_change=sync_max_items
-            )
-        with ctrl_col2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("➕ Add Blank Card", key="add_box_blank_card", use_container_width=True):
-                st.session_state.box_custom_card_counter += 1
-                new_key = f"box_custom_card_{st.session_state.box_custom_card_counter}"
-                st.session_state.box_gallery_overrides[new_key] = {
-                    "date_hdr": "Date - (MDY)",
-                    "tkt_id": "",
-                    "box_id": "CA2-UKNO91ZCNM-G03",
-                    "action": "Not Fix",
-                    "maint": selected_tab,
-                    "img1": None,
-                    "img2": None
-                }
+            def sync_max_items():
                 save_box_state()
-                st.rerun()
 
-        cards_to_render = []
-
-        # 1. Custom user-added cards
-        for key, override_data in st.session_state.box_gallery_overrides.items():
-            if key.startswith("box_custom_card_") and key not in st.session_state.box_deleted_card_keys:
-                cards_to_render.append((key, override_data))
-
-        # 2. Sheet records up to max_items
-        sheet_count = 0
-        for idx, row in df_raw.iterrows():
-            key = f"box_sheet_card_{selected_tab}_{idx}"
-            if key in st.session_state.box_deleted_card_keys:
-                continue
-            if sheet_count >= max_items:
-                break
-            sheet_count += 1
-
-            reg_str = str(row[region_col]).strip() if pd.notna(row[region_col]) else 'MDY'
-            box_id_val = str(row[box_col]).strip() if pd.notna(row[box_col]) else 'CA2-041Y12ZMYM-H07'
-            tkt_id_val = str(row[ticket_col]).strip() if ticket_col and pd.notna(row[ticket_col]) and str(row[ticket_col]).strip() != 'nan' else ''
-            action_val = str(row[action_col]).strip() if pd.notna(row[action_col]) and str(row[action_col]).strip() != 'nan' else 'Not Fix'
-            maint_val = str(row[maint_col]).strip() if pd.notna(row[maint_col]) and str(row[maint_col]).strip() != 'nan' else selected_tab
-
-            u1 = str(row[img1_col]).strip() if pd.notna(row[img1_col]) and str(row[img1_col]).startswith('http') else None
-            u2 = str(row[img2_col]).strip() if pd.notna(row[img2_col]) and str(row[img2_col]).startswith('http') else None
-
-            default_card_data = {
-                "date_hdr": f"Date - ({reg_str})",
-                "tkt_id": tkt_id_val,
-                "box_id": box_id_val,
-                "action": action_val,
-                "maint": maint_val,
-                "img1": u1,
-                "img2": u2
-            }
-
-            saved_override = st.session_state.box_gallery_overrides.get(key, {})
-            merged_data = {**default_card_data, **saved_override}
-            cards_to_render.append((key, merged_data))
-
-        # Render Cards
-        for card_idx, (card_key, card_data) in enumerate(cards_to_render, start=1):
-            st.markdown("---")
-
-            # Top Row: Text Fields + Delete Button
-            txt_col, del_col = st.columns([5, 1])
-
-            with del_col:
-                if st.button("🗑️ Delete Card", key=f"del_box_{card_key}", use_container_width=True):
-                    delete_storage_file(card_data.get("img1"))
-                    delete_storage_file(card_data.get("img2"))
-
-                    st.session_state.box_deleted_card_keys.add(card_key)
-                    st.session_state.box_gallery_overrides.pop(card_key, None)
+            # Display Controls
+            ctrl_col1, ctrl_col2 = st.columns([3, 1])
+            with ctrl_col1:
+                max_items = st.slider(
+                    "Max items to display",
+                    min_value=1,
+                    max_value=50,
+                    key="box_max_items",
+                    on_change=sync_max_items
+                )
+            with ctrl_col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("➕ Add Blank Card", key="add_box_blank_card", use_container_width=True):
+                    st.session_state.box_custom_card_counter += 1
+                    new_key = f"box_custom_card_{st.session_state.box_custom_card_counter}"
+                    st.session_state.box_gallery_overrides[new_key] = {
+                        "date_hdr": "Date - (MDY)",
+                        "tkt_id": "",
+                        "box_id": "CA2-UKNO91ZCNM-G03",
+                        "action": "Not Fix",
+                        "maint": selected_tab,
+                        "img1": None,
+                        "img2": None
+                    }
                     save_box_state()
                     st.rerun()
 
-            with txt_col:
-                val_hdr = st.text_input("Date Header", value=card_data["date_hdr"], key=f"hdr_box_{card_key}", label_visibility="collapsed")
-                val_tkt = st.text_input("Ticket ID", value=card_data["tkt_id"], key=f"tkt_box_{card_key}", label_visibility="collapsed", placeholder="Ticket ID (Optional)")
-                val_box = st.text_input("Box Code", value=card_data["box_id"], key=f"box_code_{card_key}", label_visibility="collapsed")
-                val_act = st.text_input("Action Status", value=card_data["action"], key=f"act_box_{card_key}", label_visibility="collapsed")
-                val_mnt = st.text_input("Maintenance Status", value=card_data["maint"], key=f"mnt_box_{card_key}", label_visibility="collapsed")
+            cards_to_render = []
 
-            # Persist text & image references to session state
-            if card_key not in st.session_state.box_gallery_overrides:
-                st.session_state.box_gallery_overrides[card_key] = {}
-            
-            st.session_state.box_gallery_overrides[card_key].update({
-                "date_hdr": val_hdr,
-                "tkt_id": val_tkt,
-                "box_id": val_box,
-                "action": val_act,
-                "maint": val_mnt,
-                "img1": st.session_state.box_gallery_overrides[card_key].get("img1", card_data.get("img1")),
-                "img2": st.session_state.box_gallery_overrides[card_key].get("img2", card_data.get("img2"))
-            })
+            # 1. Custom user-added cards
+            for key, override_data in st.session_state.box_gallery_overrides.items():
+                if key.startswith("box_custom_card_") and key not in st.session_state.box_deleted_card_keys:
+                    cards_to_render.append((key, override_data))
 
-            # Side-by-Side Photos Below Text
-            p_col1, p_col2 = st.columns(2)
+            # 2. Sheet records up to max_items
+            sheet_count = 0
+            for idx, row in df_raw.iterrows():
+                key = f"box_sheet_card_{selected_tab}_{idx}"
+                if key in st.session_state.box_deleted_card_keys:
+                    continue
+                if sheet_count >= max_items:
+                    break
+                sheet_count += 1
 
-            with p_col1:
-                img1_val = st.session_state.box_gallery_overrides[card_key].get("img1")
-                if img1_val:
-                    st.image(img1_val, use_container_width=True)
-                    if st.button("❌ Remove Photo 1", key=f"rm1_box_{card_key}"):
-                        delete_storage_file(img1_val)
-                        st.session_state.box_gallery_overrides[card_key]["img1"] = None
+                reg_str = str(row[region_col]).strip() if pd.notna(row[region_col]) else 'MDY'
+                box_id_val = str(row[box_col]).strip() if pd.notna(row[box_col]) else 'CA2-041Y12ZMYM-H07'
+                tkt_id_val = str(row[ticket_col]).strip() if ticket_col and pd.notna(row[ticket_col]) and str(row[ticket_col]).strip() != 'nan' else ''
+                action_val = str(row[action_col]).strip() if pd.notna(row[action_col]) and str(row[action_col]).strip() != 'nan' else 'Not Fix'
+                maint_val = str(row[maint_col]).strip() if pd.notna(row[maint_col]) and str(row[maint_col]).strip() != 'nan' else selected_tab
+
+                u1 = str(row[img1_col]).strip() if pd.notna(row[img1_col]) and str(row[img1_col]).startswith('http') else None
+                u2 = str(row[img2_col]).strip() if pd.notna(row[img2_col]) and str(row[img2_col]).startswith('http') else None
+
+                default_card_data = {
+                    "date_hdr": f"Date - ({reg_str})",
+                    "tkt_id": tkt_id_val,
+                    "box_id": box_id_val,
+                    "action": action_val,
+                    "maint": maint_val,
+                    "img1": u1,
+                    "img2": u2
+                }
+
+                saved_override = st.session_state.box_gallery_overrides.get(key, {})
+                merged_data = {**default_card_data, **saved_override}
+                cards_to_render.append((key, merged_data))
+
+            # Render Cards
+            for card_idx, (card_key, card_data) in enumerate(cards_to_render, start=1):
+                st.markdown("---")
+
+                # Top Row: Text Fields + Delete Button
+                txt_col, del_col = st.columns([5, 1])
+
+                with del_col:
+                    if st.button("🗑️ Delete Card", key=f"del_box_{card_key}", use_container_width=True):
+                        delete_storage_file(card_data.get("img1"))
+                        delete_storage_file(card_data.get("img2"))
+
+                        st.session_state.box_deleted_card_keys.add(card_key)
+                        st.session_state.box_gallery_overrides.pop(card_key, None)
                         save_box_state()
                         st.rerun()
-                else:
-                    up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
-                    if up_img1 is not None:
-                        saved_path = save_uploaded_file(up_img1, card_key, 1)
-                        st.session_state.box_gallery_overrides[card_key]["img1"] = saved_path
-                        save_box_state()
-                        st.rerun()
 
-            with p_col2:
-                img2_val = st.session_state.box_gallery_overrides[card_key].get("img2")
-                if img2_val:
-                    st.image(img2_val, use_container_width=True)
-                    if st.button("❌ Remove Photo 2", key=f"rm2_box_{card_key}"):
-                        delete_storage_file(img2_val)
-                        st.session_state.box_gallery_overrides[card_key]["img2"] = None
-                        save_box_state()
-                        st.rerun()
-                else:
-                    up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
-                    if up_img2 is not None:
-                        saved_path = save_uploaded_file(up_img2, card_key, 2)
-                        st.session_state.box_gallery_overrides[card_key]["img2"] = saved_path
-                        save_box_state()
-                        st.rerun()
+                with txt_col:
+                    val_hdr = st.text_input("Date Header", value=card_data["date_hdr"], key=f"hdr_box_{card_key}", label_visibility="collapsed")
+                    val_tkt = st.text_input("Ticket ID", value=card_data["tkt_id"], key=f"tkt_box_{card_key}", label_visibility="collapsed", placeholder="Ticket ID (Optional)")
+                    val_box = st.text_input("Box Code", value=card_data["box_id"], key=f"box_code_{card_key}", label_visibility="collapsed")
+                    val_act = st.text_input("Action Status", value=card_data["action"], key=f"act_box_{card_key}", label_visibility="collapsed")
+                    val_mnt = st.text_input("Maintenance Status", value=card_data["maint"], key=f"mnt_box_{card_key}", label_visibility="collapsed")
 
-    except Exception as e:
-        st.error(f"Error loading Box Data Photo Gallery: {e}")
+                # Persist text & image references to session state
+                if card_key not in st.session_state.box_gallery_overrides:
+                    st.session_state.box_gallery_overrides[card_key] = {}
+                
+                st.session_state.box_gallery_overrides[card_key].update({
+                    "date_hdr": val_hdr,
+                    "tkt_id": val_tkt,
+                    "box_id": val_box,
+                    "action": val_act,
+                    "maint": val_mnt,
+                    "img1": st.session_state.box_gallery_overrides[card_key].get("img1", card_data.get("img1")),
+                    "img2": st.session_state.box_gallery_overrides[card_key].get("img2", card_data.get("img2"))
+                })
+
+                # Side-by-Side Photos Below Text
+                p_col1, p_col2 = st.columns(2)
+
+                with p_col1:
+                    img1_val = st.session_state.box_gallery_overrides[card_key].get("img1")
+                    if img1_val:
+                        st.image(img1_val, use_container_width=True)
+                        if st.button("❌ Remove Photo 1", key=f"rm1_box_{card_key}"):
+                            delete_storage_file(img1_val)
+                            st.session_state.box_gallery_overrides[card_key]["img1"] = None
+                            save_box_state()
+                            st.rerun()
+                    else:
+                        up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
+                        if up_img1 is not None:
+                            saved_path = save_uploaded_file(up_img1, card_key, 1)
+                            st.session_state.box_gallery_overrides[card_key]["img1"] = saved_path
+                            save_box_state()
+                            st.rerun()
+
+                with p_col2:
+                    img2_val = st.session_state.box_gallery_overrides[card_key].get("img2")
+                    if img2_val:
+                        st.image(img2_val, use_container_width=True)
+                        if st.button("❌ Remove Photo 2", key=f"rm2_box_{card_key}"):
+                            delete_storage_file(img2_val)
+                            st.session_state.box_gallery_overrides[card_key]["img2"] = None
+                            save_box_state()
+                            st.rerun()
+                    else:
+                        up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
+                        if up_img2 is not None:
+                            saved_path = save_uploaded_file(up_img2, card_key, 2)
+                            st.session_state.box_gallery_overrides[card_key]["img2"] = saved_path
+                            save_box_state()
+                            st.rerun()
+
+        except Exception as e:
+            st.error(f"Error loading Box Data Photo Gallery: {e}")
