@@ -744,10 +744,9 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
     # --- VIEW 2: BRACKET SUMMARY ---
     elif view_mode == "Bracket Summary":
 
-        try:
+  try:
             df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
 
-try:
             if df_bracket_raw.empty:
                 st.warning("No data found in 'Bracket Issue' tab.")
             else:
@@ -912,10 +911,10 @@ try:
                     val_act = st.text_input("Action Status", value=card_data["action"], key=f"act_box_{card_key}", label_visibility="collapsed")
                     val_mnt = st.text_input("Maintenance Status", value=card_data["maint"], key=f"mnt_box_{card_key}", label_visibility="collapsed")
 
-                # Persist text & image references to session state
+                # Persist text & image references
                 if card_key not in st.session_state.box_gallery_overrides:
                     st.session_state.box_gallery_overrides[card_key] = {}
-                
+
                 st.session_state.box_gallery_overrides[card_key].update({
                     "date_hdr": val_hdr,
                     "tkt_id": val_tkt,
@@ -925,6 +924,7 @@ try:
                     "img1": st.session_state.box_gallery_overrides[card_key].get("img1", card_data.get("img1")),
                     "img2": st.session_state.box_gallery_overrides[card_key].get("img2", card_data.get("img2"))
                 })
+                save_box_state()
 
                 # Side-by-Side Photos Below Text
                 p_col1, p_col2 = st.columns(2)
