@@ -809,21 +809,21 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 df_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, selected_tab)
                 cols = list(df_raw.columns)
 
-                box_col = st.sidebar.selectbox("Box/Site ID Column", cols, index=min(3, len(cols)-1))
+                box_col = st.sidebar.selectbox("Box/Site ID Column", cols, index=min(3, max(0, len(cols)-1)))
                 ticket_col = st.sidebar.selectbox("Ticket Column (Optional)", [None] + cols, index=0)
                 region_col = st.sidebar.selectbox("City/Region Column", cols, index=0)
-                action_col = st.sidebar.selectbox("Action Status Column", cols, index=min(5, len(cols)-1))
-                maint_col = st.sidebar.selectbox("Maintenance Status Column", cols, index=min(4, len(cols)-1))
+                action_col = st.sidebar.selectbox("Action Status Column", cols, index=min(5, max(0, len(cols)-1)))
+                maint_col = st.sidebar.selectbox("Maintenance Status Column", cols, index=min(4, max(0, len(cols)-1)))
                 
                 img_cols = [c for c in cols if any(k in c.lower() for k in ["photo", "img", "image", "url", "link", "picture"])]
-                img1_col = st.sidebar.selectbox("Photo 1 URL Column", img_cols if img_cols else cols, index=0 if img_cols else min(len(cols)-2, len(cols)-1))
-                img2_col = st.sidebar.selectbox("Photo 2 URL Column", img_cols if img_cols else cols, index=min(1, len(img_cols)-1) if len(img_cols) > 1 else min(len(cols)-1, len(cols)-1))
+                img1_col = st.sidebar.selectbox("Photo 1 URL Column", img_cols if img_cols else cols, index=0 if img_cols else min(len(cols)-2, max(0, len(cols)-1)))
+                img2_col = st.sidebar.selectbox("Photo 2 URL Column", img_cols if img_cols else cols, index=min(1, max(0, len(img_cols)-1)) if len(img_cols) > 1 else min(len(cols)-1, max(0, len(cols)-1)))
 
                 def sync_max_items():
                     save_box_state()
 
-                # Display Controls
-                ctrl_col1, ctrl_col2 = st.columns([3, 1])
+                # Display Controls & Global Save Button Header
+                ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
                 with ctrl_col1:
                     max_items = st.slider(
                         "Max items to display",
@@ -846,8 +846,12 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             "img1": None,
                             "img2": None
                         }
-                        save_box_state()
                         st.rerun()
+
+                with ctrl_col3:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    # Master save button triggers persistent storage update
+                    save_requested = st.button("💾 Save Changes", key="save_box_gallery", type="primary", use_container_width=True)
 
                 cards_to_render = []
 
@@ -893,7 +897,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 for card_idx, (card_key, card_data) in enumerate(cards_to_render, start=1):
                     st.markdown("---")
 
-                    # Top Row: Text Fields + Delete Button
                     txt_col, del_col = st.columns([5, 1])
 
                     with del_col:
@@ -907,63 +910,60 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             st.rerun()
 
                     with txt_col:
-                        val_hdr = st.text_input("Date Header", value=card_data["date_hdr"], key=f"hdr_box_{card_key}", label_visibility="collapsed")
-                        val_tkt = st.text_input("Ticket ID", value=card_data["tkt_id"], key=f"tkt_box_{card_key}", label_visibility="collapsed", placeholder="Ticket ID (Optional)")
-                        val_box = st.text_input("Box Code", value=card_data["box_id"], key=f"box_code_{card_key}", label_visibility="collapsed")
-                        val_act = st.text_input("Action Status", value=card_data["action"], key=f"act_box_{card_key}", label_visibility="collapsed")
-                        val_mnt = st.text_input("Maintenance Status", value=card_data["maint"], key=f"mnt_box_{card_key}", label_visibility="collapsed")
+                        st.text_input("Date Header", value=card_data["date_hdr"], key=f"hdr_box_{card_key}", label_visibility="collapsed")
+                        st.text_input("Ticket ID", value=card_data["tkt_id"], key=f"tkt_box_{card_key}", label_visibility="collapsed", placeholder="Ticket ID (Optional)")
+                        st.text_input("Box Code", value=card_data["box_id"], key=f"box_code_{card_key}", label_visibility="collapsed")
+                        st.text_input("Action Status", value=card_data["action"], key=f"act_box_{card_key}", label_visibility="collapsed")
+                        st.text_input("Maintenance Status", value=card_data["maint"], key=f"mnt_box_{card_key}", label_visibility="collapsed")
 
-                    # Persist text & image references
-                    if card_key not in st.session_state.box_gallery_overrides:
-                        st.session_state.box_gallery_overrides[card_key] = {}
-
-                    st.session_state.box_gallery_overrides[card_key].update({
-                        "date_hdr": val_hdr,
-                        "tkt_id": val_tkt,
-                        "box_id": val_box,
-                        "action": val_act,
-                        "maint": val_mnt,
-                        "img1": st.session_state.box_gallery_overrides[card_key].get("img1", card_data.get("img1")),
-                        "img2": st.session_state.box_gallery_overrides[card_key].get("img2", card_data.get("img2"))
-                    })
-                    save_box_state()
-
-                    # Side-by-Side Photos Below Text
+                    # Side-by-Side Photos
                     p_col1, p_col2 = st.columns(2)
 
                     with p_col1:
-                        img1_val = st.session_state.box_gallery_overrides[card_key].get("img1")
+                        img1_val = card_data.get("img1")
                         if img1_val:
                             st.image(img1_val, use_container_width=True)
                             if st.button("❌ Remove Photo 1", key=f"rm1_box_{card_key}"):
                                 delete_storage_file(img1_val)
-                                st.session_state.box_gallery_overrides[card_key]["img1"] = None
-                                save_box_state()
+                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img1"] = None
                                 st.rerun()
                         else:
                             up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
                             if up_img1 is not None:
                                 saved_path = save_uploaded_file(up_img1, card_key, 1)
-                                st.session_state.box_gallery_overrides[card_key]["img1"] = saved_path
-                                save_box_state()
+                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img1"] = saved_path
                                 st.rerun()
 
                     with p_col2:
-                        img2_val = st.session_state.box_gallery_overrides[card_key].get("img2")
+                        img2_val = card_data.get("img2")
                         if img2_val:
                             st.image(img2_val, use_container_width=True)
                             if st.button("❌ Remove Photo 2", key=f"rm2_box_{card_key}"):
                                 delete_storage_file(img2_val)
-                                st.session_state.box_gallery_overrides[card_key]["img2"] = None
-                                save_box_state()
+                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img2"] = None
                                 st.rerun()
                         else:
                             up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
                             if up_img2 is not None:
                                 saved_path = save_uploaded_file(up_img2, card_key, 2)
-                                st.session_state.box_gallery_overrides[card_key]["img2"] = saved_path
-                                save_box_state()
+                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img2"] = saved_path
                                 st.rerun()
+
+                # Execute Overwrite Logic when "Save Changes" is Clicked
+                if save_requested:
+                    for card_key, original_data in cards_to_render:
+                        st.session_state.box_gallery_overrides.setdefault(card_key, {})
+                        st.session_state.box_gallery_overrides[card_key].update({
+                            "date_hdr": st.session_state.get(f"hdr_box_{card_key}", original_data["date_hdr"]),
+                            "tkt_id": st.session_state.get(f"tkt_box_{card_key}", original_data["tkt_id"]),
+                            "box_id": st.session_state.get(f"box_code_{card_key}", original_data["box_id"]),
+                            "action": st.session_state.get(f"act_box_{card_key}", original_data["action"]),
+                            "maint": st.session_state.get(f"mnt_box_{card_key}", original_data["maint"]),
+                            "img1": st.session_state.box_gallery_overrides[card_key].get("img1", original_data.get("img1")),
+                            "img2": st.session_state.box_gallery_overrides[card_key].get("img2", original_data.get("img2")),
+                        })
+                    save_box_state()
+                    st.success("✅ Changes overwritten and synced successfully!")
 
             except Exception as e:
                 st.error(f"Error loading Box Data Photo Gallery: {e}")
