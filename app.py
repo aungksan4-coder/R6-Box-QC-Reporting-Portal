@@ -920,33 +920,47 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     p_col1, p_col2 = st.columns(2)
 
                     with p_col1:
-                        img1_val = card_data.get("img1")
+                        img1_val = st.session_state.box_gallery_overrides.get(card_key, {}).get("img1", card_data.get("img1"))
                         if img1_val:
                             st.image(img1_val, use_container_width=True)
                             if st.button("❌ Remove Photo 1", key=f"rm1_box_{card_key}"):
                                 delete_storage_file(img1_val)
-                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img1"] = None
+                                # Explicitly overwrite with None in overrides
+                                st.session_state.box_gallery_overrides.setdefault(card_key, {})["img1"] = None
+                                # Reset file uploader widget state so it doesn't re-trigger
+                                if f"up1_box_{card_key}" in st.session_state:
+                                    del st.session_state[f"up1_box_{card_key}"]
+                                save_box_state()
                                 st.rerun()
                         else:
                             up_img1 = st.file_uploader("Upload Left Photo", type=["png", "jpg", "jpeg"], key=f"up1_box_{card_key}", label_visibility="collapsed")
                             if up_img1 is not None:
                                 saved_path = save_uploaded_file(up_img1, card_key, 1)
-                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img1"] = saved_path
+                                # Overwrite the key with the new saved path
+                                st.session_state.box_gallery_overrides.setdefault(card_key, {})["img1"] = saved_path
+                                save_box_state()
                                 st.rerun()
 
                     with p_col2:
-                        img2_val = card_data.get("img2")
+                        img2_val = st.session_state.box_gallery_overrides.get(card_key, {}).get("img2", card_data.get("img2"))
                         if img2_val:
                             st.image(img2_val, use_container_width=True)
                             if st.button("❌ Remove Photo 2", key=f"rm2_box_{card_key}"):
                                 delete_storage_file(img2_val)
-                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img2"] = None
+                                # Explicitly overwrite with None in overrides
+                                st.session_state.box_gallery_overrides.setdefault(card_key, {})["img2"] = None
+                                # Reset file uploader widget state so it doesn't re-trigger
+                                if f"up2_box_{card_key}" in st.session_state:
+                                    del st.session_state[f"up2_box_{card_key}"]
+                                save_box_state()
                                 st.rerun()
                         else:
                             up_img2 = st.file_uploader("Upload Right Photo", type=["png", "jpg", "jpeg"], key=f"up2_box_{card_key}", label_visibility="collapsed")
                             if up_img2 is not None:
                                 saved_path = save_uploaded_file(up_img2, card_key, 2)
-                                st.session_state.box_gallery_overrides.setdefault(card_key, card_data)["img2"] = saved_path
+                                # Overwrite the key with the new saved path
+                                st.session_state.box_gallery_overrides.setdefault(card_key, {})["img2"] = saved_path
+                                save_box_state()
                                 st.rerun()
 
                 # Execute Overwrite Logic when "Save Changes" is Clicked
