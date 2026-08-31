@@ -746,6 +746,41 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             st.markdown("### Need To Fix Cable Holder")
             render_city_status_pivot_and_chart("Need To Fix Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
 
+# --- VIEW 2: BRACKET SUMMARY ---
+    elif view_mode == "Bracket Summary":
+
+        try:
+            with st.container():
+                df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
+
+                if df_bracket_raw.empty:
+                    st.warning("No data found in 'Bracket Issue' tab.")
+                else:
+                    b1_col1, b1_col2 = st.columns(2)
+
+                    with b1_col1:
+                        st.markdown("### Bracket full")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
+
+                    with b1_col2:
+                        st.markdown("### Bracket lost")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
+
+                    st.markdown("---")
+
+                    b2_col1, b2_col2 = st.columns(2)
+
+                    with b2_col1:
+                        st.markdown("### Bracket damage")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
+
+                    with b2_col2:
+                        st.markdown("### Need to install Bracket")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
+
+        except Exception as e:
+            st.error(f"Error loading 'Bracket Issue': {e}")
+
     # ADD THIS DIRECTLY ABOVE YOUR VIEW ROUTING LOGIC:
 
 # --- HELPER FUNCTIONS FOR POWERPOINT EXPORT ---
@@ -858,41 +893,6 @@ def generate_full_pptx_report():
     prs.save(pptx_io)
     pptx_io.seek(0)
     return pptx_io
-
-# --- VIEW 2: BRACKET SUMMARY ---
-    elif view_mode == "Bracket Summary":
-
-        try:
-            with st.container():
-                df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
-
-                if df_bracket_raw.empty:
-                    st.warning("No data found in 'Bracket Issue' tab.")
-                else:
-                    b1_col1, b1_col2 = st.columns(2)
-
-                    with b1_col1:
-                        st.markdown("### Bracket full")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
-
-                    with b1_col2:
-                        st.markdown("### Bracket lost")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
-
-                    st.markdown("---")
-
-                    b2_col1, b2_col2 = st.columns(2)
-
-                    with b2_col1:
-                        st.markdown("### Bracket damage")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
-
-                    with b2_col2:
-                        st.markdown("### Need to install Bracket")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
-
-        except Exception as e:
-            st.error(f"Error loading 'Bracket Issue': {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
