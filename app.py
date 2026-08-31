@@ -15,49 +15,51 @@ from pptx.util import Inches, Pt
 
 @st.cache_data(show_spinner=False)
 def generate_pptx_export(_sheet_id, tabs_list):
-    """
-    Fetches multiple tabs and compiles them into a single in-memory PPTX file.
-    Cached to prevent re-fetching data on every app interaction.
-    """
     prs = Presentation()
     
     for tab_name in tabs_list:
         try:
             df = fetch_sheet_tab(_sheet_id, tab_name)
             
-            # Slide layout 5 is typically "Title Only"
             slide = prs.slides.add_slide(prs.slide_layouts[5])
-            
-            # Set the slide title
-            title_shape = slide.shapes.title
-            title_shape.text = f"Data Summary: {tab_name}"
+            slide.shapes.title.text = f"Data Summary: {tab_name}"
             
             if df.empty:
                 txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
                 txBox.text_frame.text = "No data found for this category."
                 continue
                 
-            # PowerPoint slides can't scroll. Cap the table at the top 12 rows.
-            df_display = df.head(12)
+            # --- THE FIX STARTS HERE ---
+            # 1. Drop all those empty "Unnamed" columns
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
             
-            rows = len(df_display) + 1  # +1 for the header row
+            # 2. Limit to a maximum of 7 columns so it actually fits on a PowerPoint slide
+            # You can change '7' to however many columns you strictly need
+            cols_to_keep = df.columns[:7]
+            df_display = df[cols_to_keep].head(10) # Cap at 10 rows to fit vertically
+            
+            rows = len(df_display) + 1 
             cols = len(df_display.columns)
             
-            # Define table dimensions and position (inches)
+            # 3. Define table position
             left = Inches(0.5)
             top = Inches(1.75)
             width = Inches(9.0)
             height = Inches(0.3 * rows)
             
-            # Add table shape to the slide
             shape = slide.shapes.add_table(rows, cols, left, top, width, height)
             table = shape.table
             
-            # Write column headers
+            # 4. Force equal column widths so they don't squish
+            col_width = Inches(9.0 / cols)
+            for i in range(cols):
+                table.columns[i].width = int(col_width)
+            # --- THE FIX ENDS HERE ---
+
+            # Write headers
             for col_idx, col_name in enumerate(df_display.columns):
                 cell = table.cell(0, col_idx)
                 cell.text = str(col_name)
-                # Optional: Make headers bold and set font size
                 for paragraph in cell.text_frame.paragraphs:
                     for run in paragraph.runs:
                         run.font.bold = True
@@ -67,20 +69,17 @@ def generate_pptx_export(_sheet_id, tabs_list):
             for row_idx, row in enumerate(df_display.itertuples(index=False)):
                 for col_idx, val in enumerate(row):
                     cell = table.cell(row_idx + 1, col_idx)
-                    # Convert NaN/NaT to empty string, otherwise convert to string
                     cell.text = "" if pd.isna(val) else str(val)
                     for paragraph in cell.text_frame.paragraphs:
                         for run in paragraph.runs:
                             run.font.size = Pt(11)
                             
         except Exception as e:
-            # Create an error slide if the fetch fails
             slide = prs.slides.add_slide(prs.slide_layouts[5])
             slide.shapes.title.text = f"Error: {tab_name}"
             txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
             txBox.text_frame.text = f"Failed to load data:\n{str(e)}"
             
-    # Save the presentation to an in-memory buffer
     output = io.BytesIO()
     prs.save(output)
     return output.getvalue()
