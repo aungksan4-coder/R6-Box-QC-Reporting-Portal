@@ -14,8 +14,9 @@ import plotly.express as px
 from pptx import Presentation
 from pptx.util import Inches, Pt
 
+# --- 1. THE FUNCTION DEFINITION ---
 @st.cache_data(show_spinner=False)
-def generate_visual_pptx():
+def generate_pptx_export(_sheet_id, tabs_list):  # <-- Renamed to match your button!
     prs = Presentation()
 
     # ==========================================
@@ -25,7 +26,6 @@ def generate_visual_pptx():
     slide_dash.shapes.title.text = "Bracket Summary: MDY"
 
     # 1. THE DATA
-    # (Replace this with the actual dataframe variable you use in your app)
     summary_data = {
         'Region': ['MDY', 'MEO', 'NPW', 'TIS'], 
         'Fixed': [284, 1, 0, 0], 
@@ -42,7 +42,6 @@ def generate_visual_pptx():
         width=Inches(4.0), height=Inches(1.5)
     ).table
     
-    # Write the Headers into the table
     for col_idx, col_name in enumerate(df_summary.columns):
         cell = table_shape.cell(0, col_idx)
         cell.text = str(col_name)
@@ -51,7 +50,6 @@ def generate_visual_pptx():
                 run.font.bold = True
                 run.font.size = Pt(11)
                 
-    # Write the Row Data into the table
     for row_idx, row in enumerate(df_summary.itertuples(index=False)):
         for col_idx, val in enumerate(row):
             cell = table_shape.cell(row_idx + 1, col_idx)
@@ -62,7 +60,6 @@ def generate_visual_pptx():
 
     # 3. GENERATE AND INSERT THE CHART
     try:
-        # Create the exact same Plotly chart you use in your app
         fig = px.bar(
             df_summary, 
             x='Region', 
@@ -70,24 +67,19 @@ def generate_visual_pptx():
             barmode='group',
             title='Fixed and not Fix'
         )
-        
-        # Convert the chart to an image stream in memory (requires 'kaleido')
         chart_image_bytes = fig.to_image(format="png", engine="kaleido")
         chart_stream = io.BytesIO(chart_image_bytes)
         
-        # Add the image to the PowerPoint slide (Bottom Left)
         slide_dash.shapes.add_picture(chart_stream, left=Inches(0.5), top=Inches(3.5), width=Inches(7.0))
         
     except Exception as e:
-        # If the chart fails to generate, print an error on the slide instead of crashing
         txBox = slide_dash.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(7.0), Inches(1))
         txBox.text_frame.text = f"Could not generate chart. Error: {e}"
 
-    # Save and return the file
     output = io.BytesIO()
     prs.save(output)
     return output.getvalue()
-
+    
 @st.cache_resource
 def init_supabase():
     url = st.secrets["SUPABASE_URL"]
