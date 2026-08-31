@@ -7,6 +7,62 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from supabase import create_client
+import io
+import pandas as pd
+from pptx import Presentation
+from pptx.util import Inches, Pt
+
+def generate_pptx_bytes(df: pd.DataFrame, report_title: str = "Portal Report") -> bytes:
+    """Generates a PowerPoint presentation in-memory from a filtered DataFrame."""
+    prs = Presentation()
+    
+    # Slide 1: Title Slide
+    title_layout = prs.slide_layouts[0]
+    slide = prs.slides.add_slide(title_layout)
+    slide.shapes.title.text = report_title
+    slide.placeholders[1].text = f"Total Records: {len(df)}\nGenerated from Portal"
+
+    # Slide 2+: Data Tables (chunked into 10 rows per slide for fit)
+    chunk_size = 10
+    blank_layout = prs.slide_layouts[6]
+    
+    for page_idx, start_idx in enumerate(range(0, len(df), chunk_size)):
+        df_chunk = df.iloc[start_idx : start_idx + chunk_size]
+        slide = prs.slides.add_slide(blank_layout)
+        
+        # Add Slide Header
+        txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(9), Inches(0.5))
+        tf = txBox.text_frame
+        p = tf.paragraphs[0]
+        p.text = f"{report_title} (Page {page_idx + 1})"
+        p.font.size = Pt(18)
+        p.font.bold = True
+
+        # Table dimensions
+        rows, cols = len(df_chunk) + 1, len(df.columns)
+        left, top, width, height = Inches(0.5), Inches(1.0), Inches(9.0), Inches(5.5)
+        table_shape = slide.shapes.add_table(rows, cols, left, top, width, height)
+        table = table_shape.table
+
+        # Set Column Headers
+        for col_idx, col_name in enumerate(df.columns):
+            cell = table.cell(0, col_idx)
+            cell.text = str(col_name)
+            cell.text_frame.paragraphs[0].font.size = Pt(10)
+            cell.text_frame.paragraphs[0].font.bold = True
+
+        # Insert Data Rows
+        for row_idx, row in enumerate(df_chunk.itertuples(index=False)):
+            for col_idx, val in enumerate(row):
+                cell = table.cell(row_idx + 1, col_idx)
+                cell.text = str(val) if pd.notna(val) else ""
+                cell.text_frame.paragraphs[0].font.size = Pt(9)
+
+    # Save to memory buffer
+    buffer = io.BytesIO()
+    prs.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 @st.cache_resource
@@ -853,6 +909,16 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     st.markdown("<br>", unsafe_allow_html=True)
                     # Master save button triggers persistent storage update
                     save_requested = st.button("💾 Save Changes", key="save_box_gallery", type="primary", use_container_width=True)
+                with ctrl_col4:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    pptx_data = generate_pptx_bytes(df_raw, report_title=f"Report - {selected_tab}")
+                    st.download_button(
+                        label="📊 Download PPTX",
+                         data=pptx_data,
+                        file_name=f"portal_{selected_tab.lower().replace(' ', '_')}.pptx",
+                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        use_container_width=True
+                    )           
 
                 cards_to_render = []
 
@@ -893,6 +959,18 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     saved_override = st.session_state.box_gallery_overrides.get(key, {})
                     merged_data = {**default_card_data, **saved_override}
                     cards_to_render.append((key, merged_data))
+                    
+# --- INSERT STEP 4 DOWNLOAD BUTTON HERE ---
+                with ctrl_col4:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    gallery_pptx_bytes = generate_gallery_pptx(cards_to_render)
+                    st.download_button(
+                        label="🖼️ Download Gallery PPTX",
+                        data=gallery_pptx_bytes,
+                        file_name=f"gallery_{selected_tab.lower().replace(' ', '_')}.pptx",
+                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        use_container_width=True
+                    )
 
                 # Render Cards
                 for card_idx, (card_key, card_data) in enumerate(cards_to_render, start=1):
