@@ -748,6 +748,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
     # ADD THIS DIRECTLY ABOVE YOUR VIEW ROUTING LOGIC:
 
+# --- HELPER FUNCTIONS FOR POWERPOINT EXPORT ---
 def add_dataframe_to_slide(slide, df, title_text, left, top, width, height):
     tx_box = slide.shapes.add_textbox(left, top - Inches(0.5), width, Inches(0.4))
     tf = tx_box.text_frame
