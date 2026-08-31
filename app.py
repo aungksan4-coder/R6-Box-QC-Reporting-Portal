@@ -10,76 +10,80 @@ from supabase import create_client
 import io
 import pandas as pd
 import streamlit as st
+import plotly.express as px
 from pptx import Presentation
 from pptx.util import Inches, Pt
 
 @st.cache_data(show_spinner=False)
-def generate_pptx_export(_sheet_id, tabs_list):
+def generate_visual_pptx():
     prs = Presentation()
-    
-    for tab_name in tabs_list:
-        try:
-            df = fetch_sheet_tab(_sheet_id, tab_name)
-            
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = f"Data Summary: {tab_name}"
-            
-            if df.empty:
-                txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-                txBox.text_frame.text = "No data found for this category."
-                continue
-                
-            # --- THE FIX STARTS HERE ---
-            # 1. Drop all those empty "Unnamed" columns
-            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-            
-            # 2. Limit to a maximum of 7 columns so it actually fits on a PowerPoint slide
-            # You can change '7' to however many columns you strictly need
-            cols_to_keep = df.columns[:7]
-            df_display = df[cols_to_keep].head(10) # Cap at 10 rows to fit vertically
-            
-            rows = len(df_display) + 1 
-            cols = len(df_display.columns)
-            
-            # 3. Define table position
-            left = Inches(0.5)
-            top = Inches(1.75)
-            width = Inches(9.0)
-            height = Inches(0.3 * rows)
-            
-            shape = slide.shapes.add_table(rows, cols, left, top, width, height)
-            table = shape.table
-            
-            # 4. Force equal column widths so they don't squish
-            col_width = Inches(9.0 / cols)
-            for i in range(cols):
-                table.columns[i].width = int(col_width)
-            # --- THE FIX ENDS HERE ---
 
-            # Write headers
-            for col_idx, col_name in enumerate(df_display.columns):
-                cell = table.cell(0, col_idx)
-                cell.text = str(col_name)
-                for paragraph in cell.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.bold = True
-                        run.font.size = Pt(12)
-                        
-            # Write row data
-            for row_idx, row in enumerate(df_display.itertuples(index=False)):
-                for col_idx, val in enumerate(row):
-                    cell = table.cell(row_idx + 1, col_idx)
-                    cell.text = "" if pd.isna(val) else str(val)
-                    for paragraph in cell.text_frame.paragraphs:
-                        for run in paragraph.runs:
-                            run.font.size = Pt(11)
-                            
-        except Exception as e:
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = f"Error: {tab_name}"
-            txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-            txBox.text_frame.text = f"Failed to load data:\n{str(e)}"
-            
+    # ==========================================
+    # SLIDE TYPE 1: DASHBOARD (Summary Table + Chart)
+    # ==========================================
+    slide_dash = prs.slides.add_slide(prs.slide_layouts[5]) # Title only layout
+    slide_dash.shapes.title.text = "Bracket Summary: MDY"
+
+    # 1. THE DATA
+    # (Replace this with the actual dataframe variable you use in your app)
+    summary_data = {
+        'Region': ['MDY', 'MEO', 'NPW', 'TIS'], 
+        'Fixed': [284, 1, 0, 0], 
+        'Not Fix': [27, 5, 28, 19]
+    }
+    df_summary = pd.DataFrame(summary_data)
+    
+    # 2. DRAW THE TABLE
+    rows = len(df_summary) + 1
+    cols = len(df_summary.columns)
+    table_shape = slide_dash.shapes.add_table(
+        rows=rows, cols=cols, 
+        left=Inches(0.5), top=Inches(1.5), 
+        width=Inches(4.0), height=Inches(1.5)
+    ).table
+    
+    # Write the Headers into the table
+    for col_idx, col_name in enumerate(df_summary.columns):
+        cell = table_shape.cell(0, col_idx)
+        cell.text = str(col_name)
+        for paragraph in cell.text_frame.paragraphs:
+            for run in paragraph.runs:
+                run.font.bold = True
+                run.font.size = Pt(11)
+                
+    # Write the Row Data into the table
+    for row_idx, row in enumerate(df_summary.itertuples(index=False)):
+        for col_idx, val in enumerate(row):
+            cell = table_shape.cell(row_idx + 1, col_idx)
+            cell.text = str(val)
+            for paragraph in cell.text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(10)
+
+    # 3. GENERATE AND INSERT THE CHART
+    try:
+        # Create the exact same Plotly chart you use in your app
+        fig = px.bar(
+            df_summary, 
+            x='Region', 
+            y=['Fixed', 'Not Fix'], 
+            barmode='group',
+            title='Fixed and not Fix'
+        )
+        
+        # Convert the chart to an image stream in memory (requires 'kaleido')
+        chart_image_bytes = fig.to_image(format="png", engine="kaleido")
+        chart_stream = io.BytesIO(chart_image_bytes)
+        
+        # Add the image to the PowerPoint slide (Bottom Left)
+        slide_dash.shapes.add_picture(chart_stream, left=Inches(0.5), top=Inches(3.5), width=Inches(7.0))
+        
+    except Exception as e:
+        # If the chart fails to generate, print an error on the slide instead of crashing
+        txBox = slide_dash.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(7.0), Inches(1))
+        txBox.text_frame.text = f"Could not generate chart. Error: {e}"
+
+    # Save and return the file
     output = io.BytesIO()
     prs.save(output)
     return output.getvalue()
