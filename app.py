@@ -859,7 +859,7 @@ def generate_full_pptx_report():
     pptx_io.seek(0)
     return pptx_io
 
-    # --- VIEW 2: BRACKET SUMMARY ---
+# --- VIEW 2: BRACKET SUMMARY ---
     elif view_mode == "Bracket Summary":
 
         try:
