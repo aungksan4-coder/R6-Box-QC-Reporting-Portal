@@ -894,7 +894,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         except Exception as e:
             st.error(f"Error loading 'Bracket Issue': {e}")
 
-    # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
+# --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
         with st.container():
             st.markdown("### 📷 Issues & Fixed Photos")
@@ -937,22 +937,24 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 img1_col = st.sidebar.selectbox("Photo 1 URL Column", img_cols if img_cols else cols, index=0 if img_cols else min(len(cols)-2, max(0, len(cols)-1)))
                 img2_col = st.sidebar.selectbox("Photo 2 URL Column", img_cols if img_cols else cols, index=min(1, max(0, len(img_cols)-1)) if len(img_cols) > 1 else min(len(cols)-1, max(0, len(cols)-1)))
 
+                # --- POWERPOINT EXPORT SECTION ---
                 st.sidebar.markdown("---")
-st.sidebar.header("📊 Export PowerPoint")
+                st.sidebar.header("📊 Export PowerPoint")
 
-if st.sidebar.button("⚙️ Generate Presentation"):
-    with st.spinner("Building PPTX slides..."):
-        st.session_state["pptx_buffer"] = generate_full_pptx_report()
-        st.success("Ready!")
+                if st.sidebar.button("⚙️ Generate Presentation"):
+                    with st.spinner("Building PPTX slides..."):
+                        st.session_state["pptx_buffer"] = generate_full_pptx_report()
+                        st.success("Ready!")
 
-if "pptx_buffer" in st.session_state:
-    st.sidebar.download_button(
-        label="📥 Download PPTX",
-        data=st.session_state["pptx_buffer"],
-        file_name="Box_QC_Report.pptx",
-        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        use_container_width=True
-    )
+                if "pptx_buffer" in st.session_state:
+                    st.sidebar.download_button(
+                        label="📥 Download PPTX",
+                        data=st.session_state["pptx_buffer"],
+                        file_name="Box_QC_Report.pptx",
+                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        use_container_width=True
+                    )
+
                 def sync_max_items():
                     save_box_state()
 
