@@ -517,6 +517,21 @@ selected_page = st.sidebar.selectbox(
 st.query_params["page"] = selected_page
 
 st.sidebar.markdown("---")
+st.sidebar.header("📊 Export PowerPoint")
+
+if st.sidebar.button("⚙️ Generate Presentation"):
+    with st.spinner("Building PPTX slides..."):
+        st.session_state["pptx_buffer"] = generate_full_pptx_report()
+        st.success("Ready!")
+
+if "pptx_buffer" in st.session_state:
+    st.sidebar.download_button(
+        label="📥 Download PPTX",
+        data=st.session_state["pptx_buffer"],
+        file_name="Box_QC_Report.pptx",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        use_container_width=True
+    )
 
 # ==============================================================================
 # PAGE 1: KEY REPORT DATA
