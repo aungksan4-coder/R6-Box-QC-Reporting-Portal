@@ -959,8 +959,49 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     saved_override = st.session_state.box_gallery_overrides.get(key, {})
                     merged_data = {**default_card_data, **saved_override}
                     cards_to_render.append((key, merged_data))
+
+                def generate_gallery_pptx(cards_to_render: list) -> bytes:
+    """Generates PPTX slides with side-by-side photos and metadata."""
+    prs = Presentation()
+    blank_layout = prs.slide_layouts[6]
+
+    for card_key, data in cards_to_render:
+        slide = prs.slides.add_slide(blank_layout)
+
+        # Slide Text Header
+        txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.4), Inches(9), Inches(1.5))
+        tf = txBox.text_frame
+        tf.word_wrap = True
+        
+        p = tf.paragraphs[0]
+        p.text = f"{data.get('date_hdr', '')} | Box: {data.get('box_id', '')}"
+        p.font.bold = True
+        p.font.size = Pt(16)
+        
+        tf.add_paragraph().text = f"Ticket ID: {data.get('tkt_id', 'N/A')}"
+        tf.add_paragraph().text = f"Action: {data.get('action', '')} | Maintenance: {data.get('maint', '')}"
+
+        # Image 1 (Left)
+        img1_path = data.get("img1")
+        if img1_path and isinstance(img1_path, str) and not img1_path.startswith("http"):
+            try:
+                slide.shapes.add_picture(img1_path, Inches(0.5), Inches(2.2), width=Inches(4.2))
+            except Exception:
+                pass
+
+        # Image 2 (Right)
+        img2_path = data.get("img2")
+        if img2_path and isinstance(img2_path, str) and not img2_path.startswith("http"):
+            try:
+                slide.shapes.add_picture(img2_path, Inches(5.0), Inches(2.2), width=Inches(4.2))
+            except Exception:
+                pass
+
+    buffer = io.BytesIO()
+    prs.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
                     
-# --- INSERT STEP 4 DOWNLOAD BUTTON HERE ---
                 with ctrl_col4:
                     st.markdown("<br>", unsafe_allow_html=True)
                     gallery_pptx_bytes = generate_gallery_pptx(cards_to_render)
