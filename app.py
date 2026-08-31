@@ -145,6 +145,119 @@ def get_persistent_date_range(key_prefix: str, min_d, max_d):
 
     return min_d, max_d
 
+    # ADD THIS DIRECTLY ABOVE YOUR VIEW ROUTING LOGIC:
+
+# --- HELPER FUNCTIONS FOR POWERPOINT EXPORT ---
+def add_dataframe_to_slide(slide, df, title_text, left, top, width, height):
+    tx_box = slide.shapes.add_textbox(left, top - Inches(0.5), width, Inches(0.4))
+    tf = tx_box.text_frame
+    p = tf.paragraphs[0]
+    p.text = title_text
+    p.font.size = Pt(14)
+    p.font.bold = True
+
+    rows, cols = df.shape
+    table_shape = slide.shapes.add_table(rows + 1, cols, left, top, width, height)
+    table = table_shape.table
+
+    for c_idx, col_name in enumerate(df.columns):
+        cell = table.cell(0, c_idx)
+        cell.text = str(col_name)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = RGBColor(41, 128, 185)
+        for p in cell.text_frame.paragraphs:
+            p.font.size = Pt(10)
+            p.font.bold = True
+            p.font.color.rgb = RGBColor(255, 255, 255)
+
+    for r_idx, row in df.iterrows():
+        for c_idx, val in enumerate(row):
+            cell = table.cell(r_idx + 1, c_idx)
+            cell.text = str(val) if pd.notna(val) else ""
+            for p in cell.text_frame.paragraphs:
+                p.font.size = Pt(9)
+
+def generate_full_pptx_report():
+    prs = Presentation()
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+    blank_layout = prs.slide_layouts[6]
+
+    # Slide 1: Cover
+    slide = prs.slides.add_slide(blank_layout)
+    tx_box = slide.shapes.add_textbox(Inches(1), Inches(2.5), Inches(11.33), Inches(2))
+    tf = tx_box.text_frame
+    p = tf.paragraphs[0]
+    p.text = "Key Operational Report & Box Quality Control"
+    p.font.size = Pt(32)
+    p.font.bold = True
+
+    # Slide 2: Key Raw Data
+    slide = prs.slides.add_slide(blank_layout)
+    try:
+        df_key_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Key Raw")
+        if not df_key_raw.empty:
+            add_dataframe_to_slide(slide, df_key_raw.head(10), "Key QC Summary", Inches(0.8), Inches(1.2), Inches(11.7), Inches(5))
+    except Exception:
+        pass
+
+    # Slide 3: Box Maintenance Issues
+    slide = prs.slides.add_slide(blank_layout)
+    try:
+        df_box_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
+        if not df_box_clean.empty:
+            add_dataframe_to_slide(slide, df_box_clean.head(8), "Need to Clean Box Inside", Inches(0.8), Inches(1.2), Inches(5.5), Inches(5))
+            
+        df_box_maint = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need to maintain Box")
+        if not df_box_maint.empty:
+            add_dataframe_to_slide(slide, df_box_maint.head(8), "Need to Maintain Box", Inches(6.8), Inches(1.2), Inches(5.5), Inches(5))
+    except Exception:
+        pass
+
+    # Slide 4: Bracket Issues
+    slide = prs.slides.add_slide(blank_layout)
+    try:
+        df_bracket = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
+        if not df_bracket.empty:
+            add_dataframe_to_slide(slide, df_bracket.head(10), "Bracket Issues Summary", Inches(0.8), Inches(1.2), Inches(11.7), Inches(5.0))
+    except Exception:
+        pass
+
+    # Slide 5+: Photo Cards from session state
+    if "box_gallery_overrides" in st.session_state:
+        for card_key, card in st.session_state.box_gallery_overrides.items():
+            if card_key in st.session_state.get("box_deleted_card_keys", set()):
+                continue
+            
+            photo_slide = prs.slides.add_slide(blank_layout)
+            tx_box = photo_slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(1.0))
+            tf = tx_box.text_frame
+            tf.text = f"{card.get('box_id', 'Unknown Box')} | {card.get('date_hdr', '')}"
+            tf.paragraphs[0].font.size = Pt(20)
+            tf.paragraphs[0].font.bold = True
+
+            for i, img_key in enumerate(["img1", "img2"]):
+                img_url_or_path = card.get(img_key)
+                if img_url_or_path:
+                    try:
+                        x_pos = Inches(0.8 if i == 0 else 6.8)
+                        y_pos = Inches(1.8)
+                        img_width = Inches(5.7)
+                        
+                        if str(img_url_or_path).startswith("http"):
+                            resp = requests.get(img_url_or_path, timeout=5)
+                            img_bytes = io.BytesIO(resp.content)
+                            photo_slide.shapes.add_picture(img_bytes, x_pos, y_pos, width=img_width)
+                        else:
+                            photo_slide.shapes.add_picture(img_url_or_path, x_pos, y_pos, width=img_width)
+                    except Exception:
+                        pass
+
+    pptx_io = io.BytesIO()
+    prs.save(pptx_io)
+    pptx_io.seek(0)
+    return pptx_io
+
 # --- PERSISTENT SORTING HELPER ---
 def sort_table_preserve_gt(df_table, sort_by="Grand Total", ascending=False):
     if df_table.empty or len(df_table) <= 1:
@@ -780,119 +893,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
         except Exception as e:
             st.error(f"Error loading 'Bracket Issue': {e}")
-
-    # ADD THIS DIRECTLY ABOVE YOUR VIEW ROUTING LOGIC:
-
-# --- HELPER FUNCTIONS FOR POWERPOINT EXPORT ---
-def add_dataframe_to_slide(slide, df, title_text, left, top, width, height):
-    tx_box = slide.shapes.add_textbox(left, top - Inches(0.5), width, Inches(0.4))
-    tf = tx_box.text_frame
-    p = tf.paragraphs[0]
-    p.text = title_text
-    p.font.size = Pt(14)
-    p.font.bold = True
-
-    rows, cols = df.shape
-    table_shape = slide.shapes.add_table(rows + 1, cols, left, top, width, height)
-    table = table_shape.table
-
-    for c_idx, col_name in enumerate(df.columns):
-        cell = table.cell(0, c_idx)
-        cell.text = str(col_name)
-        cell.fill.solid()
-        cell.fill.fore_color.rgb = RGBColor(41, 128, 185)
-        for p in cell.text_frame.paragraphs:
-            p.font.size = Pt(10)
-            p.font.bold = True
-            p.font.color.rgb = RGBColor(255, 255, 255)
-
-    for r_idx, row in df.iterrows():
-        for c_idx, val in enumerate(row):
-            cell = table.cell(r_idx + 1, c_idx)
-            cell.text = str(val) if pd.notna(val) else ""
-            for p in cell.text_frame.paragraphs:
-                p.font.size = Pt(9)
-
-def generate_full_pptx_report():
-    prs = Presentation()
-    prs.slide_width = Inches(13.33)
-    prs.slide_height = Inches(7.5)
-    blank_layout = prs.slide_layouts[6]
-
-    # Slide 1: Cover
-    slide = prs.slides.add_slide(blank_layout)
-    tx_box = slide.shapes.add_textbox(Inches(1), Inches(2.5), Inches(11.33), Inches(2))
-    tf = tx_box.text_frame
-    p = tf.paragraphs[0]
-    p.text = "Key Operational Report & Box Quality Control"
-    p.font.size = Pt(32)
-    p.font.bold = True
-
-    # Slide 2: Key Raw Data
-    slide = prs.slides.add_slide(blank_layout)
-    try:
-        df_key_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Key Raw")
-        if not df_key_raw.empty:
-            add_dataframe_to_slide(slide, df_key_raw.head(10), "Key QC Summary", Inches(0.8), Inches(1.2), Inches(11.7), Inches(5))
-    except Exception:
-        pass
-
-    # Slide 3: Box Maintenance Issues
-    slide = prs.slides.add_slide(blank_layout)
-    try:
-        df_box_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
-        if not df_box_clean.empty:
-            add_dataframe_to_slide(slide, df_box_clean.head(8), "Need to Clean Box Inside", Inches(0.8), Inches(1.2), Inches(5.5), Inches(5))
-            
-        df_box_maint = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need to maintain Box")
-        if not df_box_maint.empty:
-            add_dataframe_to_slide(slide, df_box_maint.head(8), "Need to Maintain Box", Inches(6.8), Inches(1.2), Inches(5.5), Inches(5))
-    except Exception:
-        pass
-
-    # Slide 4: Bracket Issues
-    slide = prs.slides.add_slide(blank_layout)
-    try:
-        df_bracket = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
-        if not df_bracket.empty:
-            add_dataframe_to_slide(slide, df_bracket.head(10), "Bracket Issues Summary", Inches(0.8), Inches(1.2), Inches(11.7), Inches(5.0))
-    except Exception:
-        pass
-
-    # Slide 5+: Photo Cards from session state
-    if "box_gallery_overrides" in st.session_state:
-        for card_key, card in st.session_state.box_gallery_overrides.items():
-            if card_key in st.session_state.get("box_deleted_card_keys", set()):
-                continue
-            
-            photo_slide = prs.slides.add_slide(blank_layout)
-            tx_box = photo_slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(1.0))
-            tf = tx_box.text_frame
-            tf.text = f"{card.get('box_id', 'Unknown Box')} | {card.get('date_hdr', '')}"
-            tf.paragraphs[0].font.size = Pt(20)
-            tf.paragraphs[0].font.bold = True
-
-            for i, img_key in enumerate(["img1", "img2"]):
-                img_url_or_path = card.get(img_key)
-                if img_url_or_path:
-                    try:
-                        x_pos = Inches(0.8 if i == 0 else 6.8)
-                        y_pos = Inches(1.8)
-                        img_width = Inches(5.7)
-                        
-                        if str(img_url_or_path).startswith("http"):
-                            resp = requests.get(img_url_or_path, timeout=5)
-                            img_bytes = io.BytesIO(resp.content)
-                            photo_slide.shapes.add_picture(img_bytes, x_pos, y_pos, width=img_width)
-                        else:
-                            photo_slide.shapes.add_picture(img_url_or_path, x_pos, y_pos, width=img_width)
-                    except Exception:
-                        pass
-
-    pptx_io = io.BytesIO()
-    prs.save(pptx_io)
-    pptx_io.seek(0)
-    return pptx_io
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
