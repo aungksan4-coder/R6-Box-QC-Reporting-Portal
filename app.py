@@ -7,7 +7,83 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from supabase import create_client
+import io
+import pandas as pd
+import streamlit as st
+from pptx import Presentation
+from pptx.util import Inches, Pt
 
+@st.cache_data(show_spinner=False)
+def generate_pptx_export(_sheet_id, tabs_list):
+    """
+    Fetches multiple tabs and compiles them into a single in-memory PPTX file.
+    Cached to prevent re-fetching data on every app interaction.
+    """
+    prs = Presentation()
+    
+    for tab_name in tabs_list:
+        try:
+            df = fetch_sheet_tab(_sheet_id, tab_name)
+            
+            # Slide layout 5 is typically "Title Only"
+            slide = prs.slides.add_slide(prs.slide_layouts[5])
+            
+            # Set the slide title
+            title_shape = slide.shapes.title
+            title_shape.text = f"Data Summary: {tab_name}"
+            
+            if df.empty:
+                txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
+                txBox.text_frame.text = "No data found for this category."
+                continue
+                
+            # PowerPoint slides can't scroll. Cap the table at the top 12 rows.
+            df_display = df.head(12)
+            
+            rows = len(df_display) + 1  # +1 for the header row
+            cols = len(df_display.columns)
+            
+            # Define table dimensions and position (inches)
+            left = Inches(0.5)
+            top = Inches(1.75)
+            width = Inches(9.0)
+            height = Inches(0.3 * rows)
+            
+            # Add table shape to the slide
+            shape = slide.shapes.add_table(rows, cols, left, top, width, height)
+            table = shape.table
+            
+            # Write column headers
+            for col_idx, col_name in enumerate(df_display.columns):
+                cell = table.cell(0, col_idx)
+                cell.text = str(col_name)
+                # Optional: Make headers bold and set font size
+                for paragraph in cell.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.bold = True
+                        run.font.size = Pt(12)
+                        
+            # Write row data
+            for row_idx, row in enumerate(df_display.itertuples(index=False)):
+                for col_idx, val in enumerate(row):
+                    cell = table.cell(row_idx + 1, col_idx)
+                    # Convert NaN/NaT to empty string, otherwise convert to string
+                    cell.text = "" if pd.isna(val) else str(val)
+                    for paragraph in cell.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(11)
+                            
+        except Exception as e:
+            # Create an error slide if the fetch fails
+            slide = prs.slides.add_slide(prs.slide_layouts[5])
+            slide.shapes.title.text = f"Error: {tab_name}"
+            txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
+            txBox.text_frame.text = f"Failed to load data:\n{str(e)}"
+            
+    # Save the presentation to an in-memory buffer
+    output = io.BytesIO()
+    prs.save(output)
+    return output.getvalue()
 
 @st.cache_resource
 def init_supabase():
@@ -400,6 +476,26 @@ selected_page = st.sidebar.selectbox(
 st.query_params["page"] = selected_page
 
 st.sidebar.markdown("---")
+st.sidebar.subheader("📥 Export to PowerPoint")
+
+export_tabs = [
+    "Need To Clean Box Inside", 
+    "Need to maintain Box", 
+    "Need To Install Pencil Kit Holder", 
+    "Need To Install Cable Holder", 
+    "Bracket Issue"
+]
+
+with st.spinner("Generating Presentation..."):
+    pptx_data = generate_pptx_export(BOX_DATA_SHEET_ID, export_tabs)
+
+st.sidebar.download_button(
+    label="⬇️ Download Presentation (.pptx)",
+    data=pptx_data,
+    file_name="Portal_Data_Summary.pptx",
+    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    use_container_width=True
+)
 
 # ==============================================================================
 # PAGE 1: KEY REPORT DATA
