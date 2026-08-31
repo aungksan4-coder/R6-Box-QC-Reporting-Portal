@@ -7,112 +7,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from supabase import create_client
-import io
-import pandas as pd
-import streamlit as st
-import plotly.express as px
-from pptx import Presentation
-from pptx.util import Inches, Pt
 
-@st.cache_data(show_spinner=False)
-def generate_pptx_export(_sheet_id, tabs_list):
-    prs = Presentation()
 
-    # Loop through every tab you passed in the export_tabs list
-    for tab_name in tabs_list:
-        try:
-            # 1. Fetch the raw data for this specific tab
-            df_raw = fetch_sheet_tab(_sheet_id, tab_name)
-            
-            # Create a new slide for this tab
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = f"{tab_name}"
-
-            if df_raw.empty:
-                txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-                txBox.text_frame.text = "No data available."
-                continue
-
-            # 2. Dynamically find the "Region" and "Status" columns to build the pivot table
-            # (It looks for columns containing these keywords, matching your portal logic)
-            region_col = next((c for c in df_raw.columns if 'region' in c.lower() or 'city' in c.lower()), None)
-            action_col = next((c for c in df_raw.columns if 'status' in c.lower() or 'action' in c.lower() or 'fix' in c.lower()), None)
-
-            if region_col and action_col:
-                # Recreate the Pivot Table math
-                df_summary = pd.crosstab(
-                    df_raw[region_col], 
-                    df_raw[action_col], 
-                    margins=True, 
-                    margins_name="Grand Total"
-                ).reset_index()
-                
-                # DRAW THE TABLE ON THE LEFT
-                rows = len(df_summary) + 1
-                cols = len(df_summary.columns)
-                table_shape = slide.shapes.add_table(
-                    rows=rows, cols=cols, 
-                    left=Inches(0.5), top=Inches(1.5), 
-                    width=Inches(4.2), height=Inches(0.3 * rows)
-                ).table
-                
-                # Write Headers
-                for col_idx, col_name in enumerate(df_summary.columns):
-                    cell = table_shape.cell(0, col_idx)
-                    cell.text = str(col_name)
-                    for paragraph in cell.text_frame.paragraphs:
-                        for run in paragraph.runs:
-                            run.font.bold = True
-                            run.font.size = Pt(11)
-                            
-                # Write Rows
-                for row_idx, row in enumerate(df_summary.itertuples(index=False)):
-                    for col_idx, val in enumerate(row):
-                        cell = table_shape.cell(row_idx + 1, col_idx)
-                        cell.text = str(val)
-                        for paragraph in cell.text_frame.paragraphs:
-                            for run in paragraph.runs:
-                                run.font.size = Pt(10)
-
-                # 3. GENERATE AND INSERT THE CHART ON THE RIGHT
-                try:
-                    # Remove 'Grand Total' from the chart so it doesn't skew the bars
-                    df_chart = df_summary[df_summary[region_col] != 'Grand Total']
-                    y_cols = [c for c in df_summary.columns if c not in [region_col, 'Grand Total']]
-                    
-                    fig = px.bar(
-                        df_chart, 
-                        x=region_col, 
-                        y=y_cols, 
-                        barmode='group',
-                        title=f'Fixed vs Not Fix'
-                    )
-                    
-                    # Convert to image and paste onto slide
-                    chart_bytes = fig.to_image(format="png", engine="kaleido")
-                    slide.shapes.add_picture(
-                        io.BytesIO(chart_bytes), 
-                        left=Inches(5.0), top=Inches(1.5), width=Inches(4.8)
-                    )
-                    
-                except Exception as e:
-                    txBox = slide.shapes.add_textbox(Inches(5.0), Inches(1.5), Inches(4.5), Inches(1))
-                    txBox.text_frame.text = f"Could not generate chart: {e}"
-
-            else:
-                txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-                txBox.text_frame.text = "Could not find 'Region' or 'Action' columns in this sheet to build the summary."
-
-        except Exception as e:
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = f"Error: {tab_name}"
-            txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-            txBox.text_frame.text = f"Failed to load data:\n{str(e)}"
-
-    output = io.BytesIO()
-    prs.save(output)
-    return output.getvalue()
-    
 @st.cache_resource
 def init_supabase():
     url = st.secrets["SUPABASE_URL"]
@@ -504,26 +400,6 @@ selected_page = st.sidebar.selectbox(
 st.query_params["page"] = selected_page
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📥 Export to PowerPoint")
-
-export_tabs = [
-    "Need To Clean Box Inside", 
-    "Need to maintain Box", 
-    "Need To Install Pencil Kit Holder", 
-    "Need To Install Cable Holder", 
-    "Bracket Issue"
-]
-
-with st.spinner("Generating Presentation..."):
-    pptx_data = generate_pptx_export(BOX_DATA_SHEET_ID, export_tabs)
-
-st.sidebar.download_button(
-    label="⬇️ Download Presentation (.pptx)",
-    data=pptx_data,
-    file_name="Portal_Data_Summary.pptx",
-    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    use_container_width=True
-)
 
 # ==============================================================================
 # PAGE 1: KEY REPORT DATA
