@@ -772,7 +772,66 @@ if selected_page == "Key Report Data":
 
         except Exception as e:
             st.error(f"Error loading Cross Team Raw view: {e}")
-            
+
+# ==============================================================================
+# PPTX HELPER FUNCTIONS
+# ==============================================================================
+import io
+import pandas as pd
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+
+def add_df_to_pptx_slide(prs, title_text, df):
+    if df is None or df.empty:
+        return
+        
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    tx_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.4), Inches(9), Inches(0.8))
+    p = tx_box.text_frame.paragraphs[0]
+    p.text = title_text
+    p.font.size = Pt(20)
+    p.font.bold = True
+    
+    df_reset = df.reset_index()
+    rows, cols = df_reset.shape
+    table_shape = slide.shapes.add_table(
+        rows + 1, cols, Inches(0.5), Inches(1.3), Inches(9), Inches(0.35 * (rows + 1))
+    )
+    table = table_shape.table
+    
+    for c_idx, col in enumerate(df_reset.columns):
+        cell = table.cell(0, c_idx)
+        cell.text = str(col)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = RGBColor(230, 230, 230)
+        
+    for r_idx, row in df_reset.iterrows():
+        for c_idx, val in enumerate(row):
+            table.cell(r_idx + 1, c_idx).text = str(val)
+
+def generate_full_pptx_report():
+    prs = Presentation()
+    
+    # --- PAGE 1: Key Report Data (MDY & Regional QC) ---
+    if "key_qc_mdy" in st.session_state:
+        add_df_to_pptx_slide(prs, "MDY Key QC", st.session_state["key_qc_mdy"])
+        
+    if "key_qc_regional" in st.session_state:
+        add_df_to_pptx_slide(prs, "Regional Key QC (MEO, NPW, PAN, TIS)", st.session_state["key_qc_regional"])
+
+    # --- PAGE 2: Box Data (Pencil Kit & Cable Holder) ---
+    if "pencil_kit_table" in st.session_state:
+        add_df_to_pptx_slide(prs, "Need To Install Pencil Kit Holder", st.session_state["pencil_kit_table"])
+        
+    if "cable_holder_table" in st.session_state:
+        add_df_to_pptx_slide(prs, "Need To Install Cable Holder", st.session_state["cable_holder_table"])
+
+    buffer = io.BytesIO()
+    prs.save(buffer)
+    buffer.seek(0)
+    return buffer
+        
 # ==============================================================================
 # PAGE 2: MSOps6 & FiberOps6 Box Data
 # ==============================================================================
