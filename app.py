@@ -50,18 +50,15 @@ def save_uploaded_file(uploaded_file, key, photo_num):
         )
         return supabase.storage.from_(BUCKET_NAME).get_public_url(path)
     except Exception as e:
-            st.error(f"Image upload error: {e}")
-            return None
-
+        st.error(f"Image upload error: {e}")
+        return None
 
 def delete_storage_file(url_or_path):
     if not url_or_path or not isinstance(url_or_path, str):
         return
     try:
-        # Clean query strings (e.g. ?t=12345)
         clean_url = url_or_path.split("?")[0]
 
-        # Extract the relative file path inside the bucket
         if f"/{BUCKET_NAME}/" in clean_url:
             path = clean_url.split(f"/{BUCKET_NAME}/")[-1]
         elif "/object/public/" in clean_url:
@@ -69,10 +66,8 @@ def delete_storage_file(url_or_path):
         else:
             path = clean_url.lstrip("/")
 
-        # Send delete request to Supabase
         res = supabase.storage.from_(BUCKET_NAME).remove([path])
 
-        # Supabase returns errors inside the response object rather than raising Python exceptions
         if isinstance(res, list) and len(res) == 0:
             st.warning(f"File not found or permission denied in bucket: {path}")
         elif isinstance(res, dict) and res.get("error"):
@@ -95,7 +90,7 @@ st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 KEY_REPORT_SHEET_ID = "1LMyLbXSJOTpZUDCjJp6RrY_6slpEmYnLGH1vPqL-VxY"
 BOX_DATA_SHEET_ID = "1CIQgVNrAzm-WiuDPqcUxH59eSq5Oq15_qyts2fcX6A0"
 
-# --- DATA FETCHING (1-minute TTL) ---
+# --- DATA FETCHING (5-minute TTL) ---
 @st.cache_data(ttl=300)
 def fetch_sheet_tab(sheet_id: str, tab_name: str) -> pd.DataFrame:
     encoded_tab = urllib.parse.quote(tab_name)
@@ -261,11 +256,17 @@ def render_interactive_pivot(df_raw, row_col, col_col, key_name):
 
     if event and event.selection and event.selection.cells:
         cell = event.selection.cells[0]
-        r_idx = cell["row"]
-        selected_col = cell["column"]
+        if isinstance(cell, (tuple, list)):
+            r_idx = cell[0]
+            c_val = cell[1]
+        else:
+            r_idx = cell.get("row")
+            c_val = cell.get("column")
+
+        selected_col = df_pivot.columns[c_val] if isinstance(c_val, int) else c_val
         selected_row_val = df_pivot.iloc[r_idx][row_col]
 
-        if selected_col != row_col and selected_row_val != "Grand Total" and selected_col != "Grand Total":
+        if selected_col != row_col and str(selected_row_val) != "Grand Total" and str(selected_col) != "Grand Total":
             filtered_df = df_raw[
                 (df_raw[row_col].astype(str).str.strip() == str(selected_row_val).strip()) & 
                 (df_raw[col_col].astype(str).str.strip() == str(selected_col).strip())
@@ -274,7 +275,7 @@ def render_interactive_pivot(df_raw, row_col, col_col, key_name):
             with st.expander(f"🔎 Raw Data Detail: [{row_col}: **{selected_row_val}** | {col_col}: **{selected_col}**] — Total ({len(filtered_df)} Rows)", expanded=True):
                 st.dataframe(filtered_df, use_container_width=True)
 
-# --- CHART HELPER FOR FIXED VS NOT FIX (Plotly Dark Style) ---
+# --- CHART HELPER FOR FIXED VS NOT FIX ---
 def render_fixed_not_fix_chart(pivot_df, category_label="City"):
     if pivot_df.empty:
         return None
@@ -360,71 +361,7 @@ def render_city_status_pivot_and_chart(tab_name, city_col_idx=0, site_code_col_i
         st.error(f"Error loading '{tab_name}': {e}")
 
 # --- REUSABLE BRACKET PIVOT & CHART COMPONENT ---
-def render_bracket_pivot_and_chart(df_bracket, rootcause_val):
-    if df_bracket.empty:
-        st.warning("No data available.")
-        return
-
-    cols = list(df_bracket.columns)
-    city_col = cols[0] if len(cols) > 0 else "City"
-    site_code_col = cols[3] if len(cols) > 3 else cols[min(2, len(cols)-1)]
-    rootcause_col = cols[4] if len(cols) > 4 else cols[min(3, len(cols)-1)]
-    fix_status_col = cols[6] if len(cols) > 6 else cols[min(5, len(cols)-1)]
-
-    df_sub = df_bracket[
-        df_bracket[rootcause_col].astype(str).str.strip().str.lower() == rootcause_val.strip().lower()
-    ].copy()
-
-    if df_sub.empty:
-        st.info(f"No records found for '{rootcause_val}'.")
-        return
-
-    df_sub[city_col] = df_sub[city_col].astype(str).str.strip()
-    df_sub[fix_status_col] = df_sub[fix_status_col].astype(str).str.strip()
-    df_sub[site_code_col] = df_sub[site_code_col].astype(str).str.strip()
-
-    pivot_df = pd.pivot_table(
-        df_sub,
-        index=city_col,
-        columns=fix_status_col,
-        values=site_code_col,
-        aggfunc="nunique",
-        fill_value=0
-    )
-
-    col_map = {}
-    for c in pivot_df.columns:
-        if str(c).strip().lower() == "fixed":
-            col_map[c] = "Fixed"
-        elif str(c).strip().lower() in ["not fix", "notfix"]:
-            col_map[c] = "not Fix"
-    pivot_df = pivot_df.rename(columns=col_map)
-
-    for col_name in ["Fixed", "not Fix"]:
-        if col_name not in pivot_df.columns:
-            pivot_df[col_name] = 0
-
-    pivot_df = pivot_df[["Fixed", "not Fix"]]
-    pivot_df["Grand Total"] = pivot_df.sum(axis=1)
-
-    gt_row = pivot_df.sum(axis=0)
-    gt_row.name = "Grand Total"
-    final_table = pd.concat([pivot_df, gt_row.to_frame().T])
-
-    st.dataframe(final_table, use_container_width=True)
-
-    fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
-    if fig:
-        st.plotly_chart(fig, use_container_width=True)
-
-# ==============================================================================
-# ==============================================================================
-# ၁။ Helper Function (Page Logic ၏ အထက်/အပြင်ဘက်တွင် သီးခြား ထားပါ)
-# ==============================================================================
 def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
-    """
-    Helper function to render bracket pivot table with interactive drill-down raw data.
-    """
     if df_bracket_raw.empty:
         st.warning(f"No data available for {category_name}.")
         return
@@ -475,7 +412,6 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
     if event_b and event_b.selection and event_b.selection.cells:
         cell = event_b.selection.cells[0]
         
-        # Tuple (0, 1) သို့မဟုတ် Dict {"row": 0, "column": ...} စစ်ပေးခြင်း
         if isinstance(cell, (tuple, list)):
             r_idx = cell[0]
             c_val = cell[1]
@@ -483,9 +419,7 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
             r_idx = cell.get("row")
             c_val = cell.get("column")
 
-        # Index Number (int) ဖြစ်နေပါက Column Name သို့ ပြောင်းပေးခြင်း
         selected_col = final_b_disp.columns[c_val] if isinstance(c_val, int) else c_val
-
         first_col = final_b_disp.columns[0]
         selected_region = final_b_disp.iloc[r_idx][first_col]
 
@@ -555,7 +489,7 @@ if selected_page == "Key Report Data":
 
     st.sidebar.markdown("---")
 
-if category == "Key Raw":
+    if category == "Key Raw":
         st.sidebar.header("⚙️ Column Mapping (Key Raw)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Key Raw")
@@ -593,12 +527,10 @@ if category == "Key Raw":
             mdy_cnt = sort_table_preserve_gt(mdy_cnt, sort_by_choice, is_ascending)
             mdy_pct = sort_table_preserve_gt(mdy_pct, sort_by_choice, is_ascending)
 
-            # mdy_cnt index ကို dataframe တွင် Column အဖြစ် ပြသနိုင်ရန် reset_index လုပ်ခြင်း
             mdy_cnt_disp = mdy_cnt.reset_index() if mdy_cnt.index.name else mdy_cnt.copy()
             
             c1, c2 = st.columns(2)
             with c1: 
-                # Selection mode ဖြင့် Table ထုတ်ခြင်း
                 event_mdy = st.dataframe(
                     mdy_cnt_disp, 
                     use_container_width=True,
@@ -610,18 +542,20 @@ if category == "Key Raw":
             with c2: 
                 st.dataframe(mdy_pct, use_container_width=True)
 
-            # MDY Table ထဲက Cell တစ်ခုခုကို Click နှိပ်လိုက်ပါက အောက်တွင် Raw Data ပြပေးမည့် Logic
             if event_mdy and event_mdy.selection and event_mdy.selection.cells:
                 cell = event_mdy.selection.cells[0]
-                r_idx = cell["row"]
-                selected_col = cell["column"]
-                
-                # Column 0 ရှိ Team Label ကို ရယူခြင်း
+                if isinstance(cell, (tuple, list)):
+                    r_idx = cell[0]
+                    c_val = cell[1]
+                else:
+                    r_idx = cell.get("row")
+                    c_val = cell.get("column")
+
+                selected_col = mdy_cnt_disp.columns[c_val] if isinstance(c_val, int) else c_val
                 first_col = mdy_cnt_disp.columns[0]
                 selected_team = mdy_cnt_disp.iloc[r_idx][first_col]
 
-                # Total သို့မဟုတ် Row Name Cell မဟုတ်ပါက Raw Data Filter ရိုက်မည်
-                if selected_col != first_col and selected_team != "Grand Total" and selected_col != "Grand Total":
+                if selected_col != first_col and str(selected_team) != "Grand Total" and str(selected_col) != "Grand Total":
                     filtered_mdy = mdy_data[
                         (mdy_data[team_col].astype(str).str.strip() == str(selected_team).strip()) & 
                         (mdy_data[status_col].astype(str).str.strip() == str(selected_col).strip())
@@ -656,16 +590,20 @@ if category == "Key Raw":
             with c4: 
                 st.dataframe(reg_pct, use_container_width=True)
 
-            # Regional Table ထဲက Cell ကို Click နှိပ်ပါက Raw Data ပြပေးမည့် Logic
             if event_reg and event_reg.selection and event_reg.selection.cells:
                 cell = event_reg.selection.cells[0]
-                r_idx = cell["row"]
-                selected_col = cell["column"]
-                
+                if isinstance(cell, (tuple, list)):
+                    r_idx = cell[0]
+                    c_val = cell[1]
+                else:
+                    r_idx = cell.get("row")
+                    c_val = cell.get("column")
+
+                selected_col = reg_cnt_disp.columns[c_val] if isinstance(c_val, int) else c_val
                 first_col = reg_cnt_disp.columns[0]
                 selected_team = reg_cnt_disp.iloc[r_idx][first_col]
 
-                if selected_col != first_col and selected_team != "Grand Total" and selected_col != "Grand Total":
+                if selected_col != first_col and str(selected_team) != "Grand Total" and str(selected_col) != "Grand Total":
                     filtered_reg = reg_data[
                         (reg_data[team_col].astype(str).str.strip() == str(selected_team).strip()) & 
                         (reg_data[status_col].astype(str).str.strip() == str(selected_col).strip())
@@ -676,7 +614,7 @@ if category == "Key Raw":
         except Exception as e:
             st.error(f"Error loading Key Raw view: {e}")
 
-elif category == "Box Raw":
+    elif category == "Box Raw":
         st.sidebar.header("⚙️ Column Mapping (Box Raw)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Box Raw")
@@ -721,7 +659,6 @@ elif category == "Box Raw":
                 
                 cnt_pf_disp = cnt_pf_sorted.reset_index() if cnt_pf_sorted.index.name else cnt_pf_sorted.copy()
 
-                # Interactive Count Table
                 event_pf = st.dataframe(
                     cnt_pf_disp, 
                     use_container_width=True,
@@ -731,14 +668,18 @@ elif category == "Box Raw":
                     key="box_pass_fail_cnt_table"
                 )
                 
-                # Percentage Table
                 st.dataframe(pct_pf_sorted, use_container_width=True)
 
-                # Drill-down handler for Pass/Fail Table (e.g., clicking 590 under Pass)
                 if event_pf and event_pf.selection and event_pf.selection.cells:
                     cell = event_pf.selection.cells[0]
-                    r_idx = cell["row"]
-                    selected_col = cell["column"]
+                    if isinstance(cell, (tuple, list)):
+                        r_idx = cell[0]
+                        c_val = cell[1]
+                    else:
+                        r_idx = cell.get("row")
+                        c_val = cell.get("column")
+
+                    selected_col = cnt_pf_disp.columns[c_val] if isinstance(c_val, int) else c_val
                     first_col = cnt_pf_disp.columns[0]
                     selected_region = cnt_pf_disp.iloc[r_idx][first_col]
 
@@ -750,7 +691,7 @@ elif category == "Box Raw":
                         with st.expander(f"🔎 Raw Data Detail: [Region: **{selected_region}** | Result: **{selected_col}**] — ({len(filtered_pf_raw)} Rows)", expanded=True):
                             st.dataframe(filtered_pf_raw, use_container_width=True)
 
-            # ---------------------------------------------------------
+# ---------------------------------------------------------
             # 2. R6 Fail Result (Take Action / No Action) (Top Middle)
             # ---------------------------------------------------------
             with top_col2:
@@ -871,7 +812,7 @@ elif category == "Box Raw":
                 lw_fc_df_disp = lw_fc_df_sorted.reset_index() if lw_fc_df_sorted.index.name else lw_fc_df_sorted.copy()
 
                 event_lw_fc = st.dataframe(
-                    lw_fc_df_disp, 
+                    lw_fc_disp, 
                     use_container_width=True,
                     hide_index=True,
                     selection_mode="single-cell",
@@ -1021,7 +962,7 @@ elif category == "Cross Team Raw":
 
         except Exception as e:
             st.error(f"Error loading Cross Team Raw view: {e}")
-            
+
 # ==============================================================================
 # ၂။ PAGE 2 Logic (view_mode ၏ condition များသည် selected_page အောက်တွင် ရှိရပါမည်)
 # ==============================================================================
@@ -1037,7 +978,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
     )
     st.sidebar.markdown("---")
 
-    # view_mode ၏ Condition များသည် Space 4 ခြားပြီး selected_page ၏ အောက်တွင် ရှိနေရပါမည်
     if view_mode == "Box Summary":
         
         # ROW 1: Clean Box Inside vs. Maintain Box
@@ -1098,7 +1038,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                     if event_clean and event_clean.selection and event_clean.selection.cells:
                         cell = event_clean.selection.cells[0]
                         
-                        # Tuple (0, 1) သို့မဟုတ် Dict {"row": 0, "column": ...} စစ်ပေးခြင်း
                         if isinstance(cell, (tuple, list)):
                             r_idx = cell[0]
                             c_val = cell[1]
@@ -1106,9 +1045,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                             r_idx = cell.get("row")
                             c_val = cell.get("column")
 
-                        # Index Number ဖြစ်နေပါက Column Name သို့ ပြောင်းပေးခြင်း
                         selected_col = final_clean_disp.columns[c_val] if isinstance(c_val, int) else c_val
-
                         first_col = final_clean_disp.columns[0]
                         selected_city = final_clean_disp.iloc[r_idx][first_col]
 
