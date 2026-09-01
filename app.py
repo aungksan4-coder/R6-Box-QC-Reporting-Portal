@@ -694,235 +694,23 @@ if selected_page == "Key Report Data":
         # ---------------------------------------------------------
         # 2. R6 Fail Result (Take Action / No Action) (Top Middle)
         # ---------------------------------------------------------
-        with top_col2:
-            st.markdown("**R6 Fail Result ( Take Action and No Take Action)**")
-            fail_df = df_filtered[df_filtered[final_status_col].astype(str).str.upper() == "FAIL"]
-            cnt_fr, pct_fr = build_count_and_pct_pivots(fail_df, region_col, fail_status_col, box_col, ["No Take Action", "Take Action"])
-            
-            cnt_fr_sorted = sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending)
-            pct_fr_sorted = sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending)
-            
-            cnt_fr_disp = cnt_fr_sorted.reset_index() if cnt_fr_sorted.index.name else cnt_fr_sorted.copy()
-
-            event_fr = st.dataframe(
-                cnt_fr_disp, 
-                use_container_width=True,
-                hide_index=True,
-                selection_mode="single-cell",
-                on_select="rerun",
-                key="box_fail_action_cnt_table"
-            )
-            
-            st.dataframe(pct_fr_sorted, use_container_width=True)
-
-            if event_fr and event_fr.selection and event_fr.selection.cells:
-                cell = event_fr.selection.cells[0]
-                r_idx = cell["row"]
-                selected_col = cell["column"]
-                first_col = cnt_fr_disp.columns[0]
-                selected_region = cnt_fr_disp.iloc[r_idx][first_col]
-
-                if selected_col != first_col and str(selected_region) != "Grand Total" and str(selected_col) != "Grand Total":
-                    filtered_fr_raw = fail_df[
-                        (fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_region).strip().upper()) & 
-                        (fail_df[fail_status_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
-                    ]
-                    with st.expander(f"🔎 Action Raw Data: [Region: **{selected_region}** | Action: **{selected_col}**] — ({len(filtered_fr_raw)} Rows)", expanded=True):
-                        st.dataframe(filtered_fr_raw, use_container_width=True)
-
-        # ---------------------------------------------------------
-        # 3. Box Ops QC Summary (Top Right)
-        # ---------------------------------------------------------
-        with top_col3:
-            st.markdown(f"**Box Ops QC (R6 MDY & R6 OC) {date_hdr}**")
-            try:
-                summary_df = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "R6 Box QC Summary")
+            with top_col2:
+                st.markdown("**R6 Fail Result ( Take Action and No Take Action)**")
+                fail_df = df_filtered[df_filtered[final_status_col].astype(str).str.upper() == "FAIL"]
+                cnt_fr, pct_fr = build_count_and_pct_pivots(fail_df, region_col, fail_status_col, box_col, ["No Take Action", "Take Action"])
                 
-                if len(summary_df.columns) >= 15:
-                    sliced = summary_df.iloc[1:8, 11:15].copy()
-                    if sliced.shape[1] == 4:
-                        sliced.columns = ["Region", "No", "Yes", "Grand Total"]
-                    
-                    def clean_number(val):
-                        if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
-                            return ""
-                        try:
-                            f = float(val)
-                            return str(int(f)) if f.is_integer() else str(f)
-                        except (ValueError, TypeError):
-                            return str(val).strip()
-
-                    sliced = sliced.map(clean_number)
-                    sliced = sliced[~sliced["Region"].astype(str).str.lower().isin(["region", "", "nan"])].reset_index(drop=True)
-                    st.dataframe(sliced, use_container_width=True)
-                else:
-                    st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True)
-            except Exception:
-                st.info("Loading summary table...")
-
-        st.markdown("---")
-
-        bot_col1, bot_col2 = st.columns(2)
-
-        # ---------------------------------------------------------
-        # 4. Fail Category (Bottom Left)
-        # ---------------------------------------------------------
-        with bot_col1:
-            st.markdown(f"**Fail Category** {date_hdr}")
-            fc_df = build_fail_category_pivot(fail_df, fail_reason_col, region_col, box_col)
-            fc_df_sorted = sort_table_preserve_gt(fc_df, sort_by_choice, is_ascending)
-            fc_df_disp = fc_df_sorted.reset_index() if fc_df_sorted.index.name else fc_df_sorted.copy()
-
-            event_fc = st.dataframe(
-                fc_df_disp, 
-                use_container_width=True,
-                hide_index=True,
-                selection_mode="single-cell",
-                on_select="rerun",
-                key="box_fail_category_cnt_table"
-            )
-
-            if event_fc and event_fc.selection and event_fc.selection.cells:
-                cell = event_fc.selection.cells[0]
-                r_idx = cell["row"]
-                selected_col = cell["column"]
-                first_col = fc_df_disp.columns[0]
-                selected_reason = fc_df_disp.iloc[r_idx][first_col]
-
-                if selected_col != first_col and str(selected_reason) != "Grand Total" and str(selected_col) != "Grand Total":
-                    filtered_fc_raw = fail_df[
-                        (fail_df[fail_reason_col].astype(str).str.strip() == str(selected_reason).strip()) & 
-                        (fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
-                    ]
-                    with st.expander(f"🔎 Fail Category Raw Data: [Reason: **{selected_reason}** | Region: **{selected_col}**] — ({len(filtered_fc_raw)} Rows)", expanded=True):
-                        st.dataframe(filtered_fc_raw, use_container_width=True)
-
-        # ---------------------------------------------------------
-        # 5. Last Week Fail Category (Bottom Right)
-        # ---------------------------------------------------------
-        with bot_col2:
-            st.markdown(f"**Last Week Fail Category** {lw_date_hdr}")
-            lw_fail_df = df_last_week[df_last_week[final_status_col].astype(str).str.upper() == "FAIL"]
-            lw_fc_df = build_fail_category_pivot(lw_fail_df, fail_reason_col, region_col, box_col)
-            lw_fc_df_sorted = sort_table_preserve_gt(lw_fc_df, sort_by_choice, is_ascending)
-            lw_fc_df_disp = lw_fc_df_sorted.reset_index() if lw_fc_df_sorted.index.name else lw_fc_df_sorted.copy()
-
-            event_lw_fc = st.dataframe(
-                lw_fc_disp, 
-                use_container_width=True,
-                hide_index=True,
-                selection_mode="single-cell",
-                on_select="rerun",
-                key="box_lw_fail_category_cnt_table"
-            )
-
-            if event_lw_fc and event_lw_fc.selection and event_lw_fc.selection.cells:
-                cell = event_lw_fc.selection.cells[0]
-                r_idx = cell["row"]
-                selected_col = cell["column"]
-                first_col = lw_fc_df_disp.columns[0]
-                selected_reason = lw_fc_df_disp.iloc[r_idx][first_col]
-
-                if selected_col != first_col and str(selected_reason) != "Grand Total" and str(selected_col) != "Grand Total":
-                    filtered_lw_fc_raw = lw_fail_df[
-                        (lw_fail_df[fail_reason_col].astype(str).str.strip() == str(selected_reason).strip()) & 
-                        (lw_fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
-                    ]
-                    with st.expander(f"🔎 Last Week Fail Category Raw Data: [Reason: **{selected_reason}** | Region: **{selected_col}**] — ({len(filtered_lw_fc_raw)} Rows)", expanded=True):
-                        st.dataframe(filtered_lw_fc_raw, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"Error loading Box Raw view: {e}")
-
-# Cross Team Raw ကို R6 Box QC Data ၏ category condition အဖြစ် ပြောင်းလဲထားပါသည်
-elif selected_page == "R6 Box QC Data" and category == "Cross Team Raw":
-    st.sidebar.header("⚙️ Column Mapping (Cross Team Raw)")
-    try:
-        df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Cross Team Raw")
-        cols = list(df_raw.columns)
-
-        team_col = st.sidebar.selectbox("Team Column (Col C)", cols, index=min(2, len(cols)-1))
-        box_req_col = st.sidebar.selectbox("Engineer Request Box (Col D)", cols, index=min(3, len(cols)-1))
-        final_status_col = st.sidebar.selectbox("Final Status Column (Col K)", cols, index=min(10, len(cols)-1))
-        region_col = st.sidebar.selectbox("Region Column (Col N)", cols, index=min(13, len(cols)-1))
-        fail_status_col = st.sidebar.selectbox("Fail Status Column (Col P)", cols, index=min(15, len(cols)-1))
-
-        date_cols = [c for c in cols if "date" in c.lower() or "time" in c.lower()]
-        date_col = st.sidebar.selectbox("Date Column", date_cols if date_cols else cols)
-
-        df_raw[date_col] = pd.to_datetime(df_raw[date_col], dayfirst=True, format="mixed", errors="coerce")
-        valid_dates = df_raw[date_col].dropna()
-
-        if not valid_dates.empty:
-            df_filtered = df_raw[(df_raw[date_col].dt.date >= s_d) & (df_raw[date_col].dt.date <= e_d)].copy()
-            date_hdr = f"({s_d.strftime('%d-%b-%Y')} to {e_d.strftime('%d-%b-%Y')})"
-        else:
-            df_filtered, date_hdr = df_raw.copy(), ""
-
-        st.markdown(f"### {date_hdr}")
-
-        df_filtered[region_col] = df_filtered[region_col].astype(str).str.strip().str.upper()
-
-        for reg in ["MDY", "OC"]:
-            st.markdown(f"### **R6 {reg} DIA/ Fiber Ops/ FT-SBS**")
-            reg_df = df_filtered[df_filtered[region_col] == reg]
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.markdown("**Box Touch Pass/ Fail Result**")
-                cnt_pf, pct_pf = build_count_and_pct_pivots(
-                    reg_df, team_col, final_status_col, box_req_col, expected_cols=["Pass", "Fail"]
-                )
-                cnt_pf_sorted = sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending)
-                pct_pf_sorted = sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending)
-
-                cnt_pf_disp = cnt_pf_sorted.reset_index() if cnt_pf_sorted.index.name else cnt_pf_sorted.copy()
-
-                event_pf = st.dataframe(
-                    cnt_pf_disp,
-                    use_container_width=True,
-                    hide_index=True,
-                    selection_mode="single-cell",
-                    on_select="rerun",
-                    key=f"cross_pf_table_{reg}"
-                )
-                
-                st.dataframe(pct_pf_sorted, use_container_width=True)
-
-                if event_pf and event_pf.selection and event_pf.selection.cells:
-                    cell = event_pf.selection.cells[0]
-                    r_idx = cell["row"]
-                    selected_col = cell["column"]
-                    first_col = cnt_pf_disp.columns[0]
-                    selected_team = cnt_pf_disp.iloc[r_idx][first_col]
-
-                    if selected_col != first_col and str(selected_team) != "Grand Total" and str(selected_col) != "Grand Total":
-                        filtered_pf_raw = reg_df[
-                            (reg_df[team_col].astype(str).str.strip() == str(selected_team).strip()) & 
-                            (reg_df[final_status_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
-                        ]
-                        with st.expander(f"🔎 Raw Data: [{reg} | Team: **{selected_team}** | Status: **{selected_col}**] — ({len(filtered_pf_raw)} Rows)", expanded=True):
-                            st.dataframe(filtered_pf_raw, use_container_width=True)
-
-            with col2:
-                st.markdown("**Fail Result ( Take Action and No Take Action)**")
-                fail_only_df = reg_df[reg_df[final_status_col].astype(str).str.strip().str.upper() == "FAIL"]
-                cnt_fr, pct_fr = build_count_and_pct_pivots(
-                    fail_only_df, team_col, fail_status_col, box_req_col, expected_cols=["No Take Action", "Take Action"]
-                )
                 cnt_fr_sorted = sort_table_preserve_gt(cnt_fr, sort_by_choice, is_ascending)
                 pct_fr_sorted = sort_table_preserve_gt(pct_fr, sort_by_choice, is_ascending)
-
+                
                 cnt_fr_disp = cnt_fr_sorted.reset_index() if cnt_fr_sorted.index.name else cnt_fr_sorted.copy()
 
                 event_fr = st.dataframe(
-                    cnt_fr_disp,
+                    cnt_fr_disp, 
                     use_container_width=True,
                     hide_index=True,
                     selection_mode="single-cell",
                     on_select="rerun",
-                    key=f"cross_action_table_{reg}"
+                    key="box_fail_action_cnt_table"
                 )
                 
                 st.dataframe(pct_fr_sorted, use_container_width=True)
@@ -932,181 +720,119 @@ elif selected_page == "R6 Box QC Data" and category == "Cross Team Raw":
                     r_idx = cell["row"]
                     selected_col = cell["column"]
                     first_col = cnt_fr_disp.columns[0]
-                    selected_team = cnt_fr_disp.iloc[r_idx][first_col]
+                    selected_region = cnt_fr_disp.iloc[r_idx][first_col]
 
-                    if selected_col != first_col and str(selected_team) != "Grand Total" and str(selected_col) != "Grand Total":
-                        filtered_fr_raw = fail_only_df[
-                            (fail_only_df[team_col].astype(str).str.strip() == str(selected_team).strip()) & 
-                            (fail_only_df[fail_status_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
+                    if selected_col != first_col and str(selected_region) != "Grand Total" and str(selected_col) != "Grand Total":
+                        filtered_fr_raw = fail_df[
+                            (fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_region).strip().upper()) & 
+                            (fail_df[fail_status_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
                         ]
-                        with st.expander(f"🔎 Action Raw Data: [{reg} | Team: **{selected_team}** | Action: **{selected_col}**] — ({len(filtered_fr_raw)} Rows)", expanded=True):
+                        with st.expander(f"🔎 Action Raw Data: [Region: **{selected_region}** | Action: **{selected_col}**] — ({len(filtered_fr_raw)} Rows)", expanded=True):
                             st.dataframe(filtered_fr_raw, use_container_width=True)
+
+            # ---------------------------------------------------------
+            # 3. Box Ops QC Summary (Top Right)
+            # ---------------------------------------------------------
+            with top_col3:
+                st.markdown(f"**Box Ops QC (R6 MDY & R6 OC) {date_hdr}**")
+                try:
+                    summary_df = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "R6 Box QC Summary")
+                    
+                    if len(summary_df.columns) >= 15:
+                        sliced = summary_df.iloc[1:8, 11:15].copy()
+                        if sliced.shape[1] == 4:
+                            sliced.columns = ["Region", "No", "Yes", "Grand Total"]
+                        
+                        def clean_number(val):
+                            if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
+                                return ""
+                            try:
+                                f = float(val)
+                                return str(int(f)) if f.is_integer() else str(f)
+                            except (ValueError, TypeError):
+                                return str(val).strip()
+
+                        sliced = sliced.map(clean_number)
+                        sliced = sliced[~sliced["Region"].astype(str).str.lower().isin(["region", "", "nan"])].reset_index(drop=True)
+                        st.dataframe(sliced, use_container_width=True)
+                    else:
+                        st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True)
+                except Exception:
+                    st.info("Loading summary table...")
 
             st.markdown("---")
 
-    except Exception as e:
-        st.error(f"Error loading Cross Team Raw view: {e}")
+            bot_col1, bot_col2 = st.columns(2)
 
-# ==============================================================================
-# Page 2 Logic: MSOps6 & FiberOps6 Box Data
-# ==============================================================================
-elif selected_page == "MSOps6 & FiberOps6 Box Data":
+            # ---------------------------------------------------------
+            # 4. Fail Category (Bottom Left)
+            # ---------------------------------------------------------
+            with bot_col1:
+                st.markdown(f"**Fail Category** {date_hdr}")
+                fc_df = build_fail_category_pivot(fail_df, fail_reason_col, region_col, box_col)
+                fc_df_sorted = sort_table_preserve_gt(fc_df, sort_by_choice, is_ascending)
+                fc_df_disp = fc_df_sorted.reset_index() if fc_df_sorted.index.name else fc_df_sorted.copy()
 
-    view_mode = st.sidebar.radio(
-        "Select Box Analysis View",
-        [
-            "Box Summary",
-            "Bracket Summary",
-            "📷 Photo for Box Fixed & Issues"
-        ]
-    )
-    st.sidebar.markdown("---")
+                event_fc = st.dataframe(
+                    fc_df_disp, 
+                    use_container_width=True,
+                    hide_index=True,
+                    selection_mode="single-cell",
+                    on_select="rerun",
+                    key="box_fail_category_cnt_table"
+                )
 
-    if view_mode == "Box Summary":
-        r1_col1, r1_col2 = st.columns(2)
+                if event_fc and event_fc.selection and event_fc.selection.cells:
+                    cell = event_fc.selection.cells[0]
+                    r_idx = cell["row"]
+                    selected_col = cell["column"]
+                    first_col = fc_df_disp.columns[0]
+                    selected_reason = fc_df_disp.iloc[r_idx][first_col]
 
-        with r1_col1:
-            st.markdown("### Need to Clean Box Inside")
-            try:
-                df_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
+                    if selected_col != first_col and str(selected_reason) != "Grand Total" and str(selected_col) != "Grand Total":
+                        filtered_fc_raw = fail_df[
+                            (fail_df[fail_reason_col].astype(str).str.strip() == str(selected_reason).strip()) & 
+                            (fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
+                        ]
+                        with st.expander(f"🔎 Fail Category Raw Data: [Reason: **{selected_reason}** | Region: **{selected_col}**] — ({len(filtered_fc_raw)} Rows)", expanded=True):
+                            st.dataframe(filtered_fc_raw, use_container_width=True)
 
-                if df_clean.empty:
-                    st.warning("No data found in 'Need To Clean Box Inside'.")
-                else:
-                    cols = list(df_clean.columns)
-                    city_col = cols[0] if len(cols) > 0 else "City"
-                    team_col = cols[1] if len(cols) > 1 and "team" in str(cols[1]).lower() else None
-                    site_code_col = cols[3] if len(cols) > 3 else cols[min(2, len(cols)-1)]
-                    fix_status_col = cols[5] if len(cols) > 5 else cols[min(4, len(cols)-1)]
+            # ---------------------------------------------------------
+            # 5. Last Week Fail Category (Bottom Right)
+            # ---------------------------------------------------------
+            with bot_col2:
+                st.markdown(f"**Last Week Fail Category** {lw_date_hdr}")
+                lw_fail_df = df_last_week[df_last_week[final_status_col].astype(str).str.upper() == "FAIL"]
+                lw_fc_df = build_fail_category_pivot(lw_fail_df, fail_reason_col, region_col, box_col)
+                lw_fc_df_sorted = sort_table_preserve_gt(lw_fc_df, sort_by_choice, is_ascending)
+                lw_fc_df_disp = lw_fc_df_sorted.reset_index() if lw_fc_df_sorted.index.name else lw_fc_df_sorted.copy()
 
-                    df_clean_proc = df_clean.dropna(subset=[city_col, fix_status_col]).copy()
-                    df_clean_proc[city_col] = df_clean_proc[city_col].astype(str).str.strip()
-                    df_clean_proc[fix_status_col] = df_clean_proc[fix_status_col].astype(str).str.strip()
-                    df_clean_proc[site_code_col] = df_clean_proc[site_code_col].astype(str).str.strip()
+                event_lw_fc = st.dataframe(
+                    lw_fc_disp, 
+                    use_container_width=True,
+                    hide_index=True,
+                    selection_mode="single-cell",
+                    on_select="rerun",
+                    key="box_lw_fail_category_cnt_table"
+                )
 
-                    index_cols = [team_col, city_col] if team_col and team_col in df_clean_proc.columns else city_col
+                if event_lw_fc and event_lw_fc.selection and event_lw_fc.selection.cells:
+                    cell = event_lw_fc.selection.cells[0]
+                    r_idx = cell["row"]
+                    selected_col = cell["column"]
+                    first_col = lw_fc_disp.columns[0]
+                    selected_reason = lw_fc_disp.iloc[r_idx][first_col]
 
-                    pivot_clean = pd.pivot_table(
-                        df_clean_proc,
-                        index=index_cols,
-                        columns=fix_status_col,
-                        values=site_code_col,
-                        aggfunc="nunique",
-                        fill_value=0
-                    )
-
-                    for col_name in ["Fixed", "Not Fix"]:
-                        if col_name not in pivot_clean.columns:
-                            pivot_clean[col_name] = 0
-
-                    pivot_clean = pivot_clean[["Fixed", "Not Fix"]]
-                    pivot_clean["Grand Total"] = pivot_clean.sum(axis=1)
-
-                    gt_row = pivot_clean.sum(axis=0)
-                    gt_row.name = "Grand Total"
-                    final_clean_table = pd.concat([pivot_clean, gt_row.to_frame().T])
-
-                    final_clean_disp = final_clean_table.reset_index() if final_clean_table.index.name else final_clean_table.copy()
-
-                    event_clean = st.dataframe(
-                        final_clean_disp,
-                        use_container_width=True,
-                        hide_index=True,
-                        selection_mode="single-cell",
-                        on_select="rerun",
-                        key="box_summary_clean"
-                    )
-
-                    if event_clean and event_clean.selection and event_clean.selection.cells:
-                        cell = event_clean.selection.cells[0]
-                        
-                        if isinstance(cell, (tuple, list)):
-                            r_idx = cell[0]
-                            c_val = cell[1]
-                        else:
-                            r_idx = cell.get("row")
-                            c_val = cell.get("column")
-
-                        selected_col = final_clean_disp.columns[c_val] if isinstance(c_val, int) else c_val
-                        first_col = final_clean_disp.columns[0]
-                        selected_city = final_clean_disp.iloc[r_idx][first_col]
-
-                        if selected_col != first_col and str(selected_city) != "Grand Total" and str(selected_col) != "Grand Total":
-                            filtered_clean_raw = df_clean_proc[
-                                (df_clean_proc[city_col].astype(str).str.strip() == str(selected_city).strip()) & 
-                                (df_clean_proc[fix_status_col].astype(str).str.strip() == str(selected_col).strip())
-                            ]
-                            with st.expander(f"🔎 Clean Box Raw Data: [{city_col}: **{selected_city}** | Status: **{selected_col}**] — ({len(filtered_clean_raw)} Rows)", expanded=True):
-                                st.dataframe(filtered_clean_raw, use_container_width=True)
-
-                    fig_clean = render_fixed_not_fix_chart(pivot_clean, category_label=city_col)
-                    if fig_clean:
-                        st.plotly_chart(fig_clean, use_container_width=True)
-
-            except Exception as e:
-                st.error(f"Error loading 'Need To Clean Box Inside': {e}")
-
-        with r1_col2:
-            st.markdown("### Need to Maintain Box")
-            render_city_status_pivot_and_chart("Need to maintain Box", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=6)
-
-        st.markdown("---")
-
-        r2_col1, r2_col2 = st.columns(2)
-
-        with r2_col1:
-            st.markdown("### Need To Install Pencil Kit Holder")
-            render_city_status_pivot_and_chart("Need To Install Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-        with r2_col2:
-            st.markdown("### Need To Install Cable Holder")
-            render_city_status_pivot_and_chart("Need To Install Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-        st.markdown("---")
-
-        r3_col1, r3_col2 = st.columns(2)
-
-        with r3_col1:
-            st.markdown("### Need To Fix Pencil Kit Holder")
-            render_city_status_pivot_and_chart("Need To Fix Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-        with r3_col2:
-            st.markdown("### Need To Fix Cable Holder")
-            render_city_status_pivot_and_chart("Need To Fix Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-    elif view_mode == "Bracket Summary":
-
-        try:
-            with st.container():
-                df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
-
-                if df_bracket_raw.empty:
-                    st.warning("No data found in 'Bracket Issue' tab.")
-                else:
-                    b1_col1, b1_col2 = st.columns(2)
-
-                    with b1_col1:
-                        st.markdown("### Bracket full")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
-
-                    with b1_col2:
-                        st.markdown("### Bracket lost")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
-
-                    st.markdown("---")
-
-                    b2_col1, b2_col2 = st.columns(2)
-
-                    with b2_col1:
-                        st.markdown("### Bracket damage")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
-
-                    with b2_col2:
-                        st.markdown("### Need to install Bracket")
-                        render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
+                    if selected_col != first_col and str(selected_reason) != "Grand Total" and str(selected_col) != "Grand Total":
+                        filtered_lw_fc_raw = lw_fail_df[
+                            (lw_fail_df[fail_reason_col].astype(str).str.strip() == str(selected_reason).strip()) & 
+                            (lw_fail_df[region_col].astype(str).str.strip().str.upper() == str(selected_col).strip().upper())
+                        ]
+                        with st.expander(f"🔎 Last Week Fail Category Raw Data: [Reason: **{selected_reason}** | Region: **{selected_col}**] — ({len(filtered_lw_fc_raw)} Rows)", expanded=True):
+                            st.dataframe(filtered_lw_fc_raw, use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error loading 'Bracket Issue': {e}")
+            st.error(f"Error loading Box Raw view: {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
