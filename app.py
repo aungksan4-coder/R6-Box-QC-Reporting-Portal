@@ -417,6 +417,76 @@ def render_bracket_pivot_and_chart(df_bracket, rootcause_val):
     if fig:
         st.plotly_chart(fig, use_container_width=True)
 
+# ==============================================================================
+# ==============================================================================
+# ၁။ Helper Function (Page Logic ၏ အထက်/အပြင်ဘက်တွင် သီးခြား ထားပါ)
+# ==============================================================================
+def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
+    """
+    Helper function to render bracket pivot table with interactive drill-down raw data.
+    """
+    if df_bracket_raw.empty:
+        st.warning(f"No data available for {category_name}.")
+        return
+
+    cols = list(df_bracket_raw.columns)
+    cat_col = cols[1] if len(cols) > 1 else cols[0]
+    region_col = cols[0] if len(cols) > 0 else "Region"
+    status_col = cols[5] if len(cols) > 5 else cols[-1]
+    id_col = cols[3] if len(cols) > 3 else cols[2]
+
+    df_sub = df_bracket_raw[df_bracket_raw[cat_col].astype(str).str.strip().str.lower() == category_name.lower()].copy()
+
+    if df_sub.empty:
+        st.info(f"No records found for '{category_name}'.")
+        return
+
+    pivot_b = pd.pivot_table(
+        df_sub,
+        index=region_col,
+        columns=status_col,
+        values=id_col,
+        aggfunc="nunique",
+        fill_value=0
+    )
+
+    for status in ["Fixed", "Not Fix"]:
+        if status not in pivot_b.columns:
+            pivot_b[status] = 0
+
+    pivot_b = pivot_b[["Fixed", "Not Fix"]]
+    pivot_b["Grand Total"] = pivot_b.sum(axis=1)
+    gt_row = pivot_b.sum(axis=0)
+    gt_row.name = "Grand Total"
+    final_b_table = pd.concat([pivot_b, gt_row.to_frame().T])
+
+    final_b_disp = final_b_table.reset_index() if final_b_table.index.name else final_b_table.copy()
+    clean_key = category_name.lower().replace(" ", "_")
+
+    event_b = st.dataframe(
+        final_b_disp,
+        use_container_width=True,
+        hide_index=True,
+        selection_mode="single-cell",
+        on_select="rerun",
+        key=f"bracket_{clean_key}"
+    )
+
+    if event_b and event_b.selection and event_b.selection.cells:
+        cell = event_b.selection.cells[0]
+        r_idx = cell["row"]
+        selected_col = cell["column"]
+        first_col = final_b_disp.columns[0]
+        selected_region = final_b_disp.iloc[r_idx][first_col]
+
+        if selected_col != first_col and str(selected_region) != "Grand Total" and str(selected_col) != "Grand Total":
+            filtered_b_raw = df_sub[
+                (df_sub[region_col].astype(str).str.strip() == str(selected_region).strip()) &
+                (df_sub[status_col].astype(str).str.strip() == str(selected_col).strip())
+            ]
+            with st.expander(f"🔎 Raw Data: [{category_name} | Region: **{selected_region}** | Status: **{selected_col}**] — ({len(filtered_b_raw)} Rows)", expanded=True):
+                st.dataframe(filtered_b_raw, use_container_width=True)
+
 # --- MAIN NAVIGATION ---
 st.sidebar.title("☰ Navigation Menu")
 
@@ -942,77 +1012,6 @@ elif category == "Cross Team Raw":
         except Exception as e:
             st.error(f"Error loading Cross Team Raw view: {e}")
             
-# ==============================================================================
-# ==============================================================================
-# ၁။ Helper Function (Page Logic ၏ အထက်/အပြင်ဘက်တွင် သီးခြား ထားပါ)
-# ==============================================================================
-def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
-    """
-    Helper function to render bracket pivot table with interactive drill-down raw data.
-    """
-    if df_bracket_raw.empty:
-        st.warning(f"No data available for {category_name}.")
-        return
-
-    cols = list(df_bracket_raw.columns)
-    cat_col = cols[1] if len(cols) > 1 else cols[0]
-    region_col = cols[0] if len(cols) > 0 else "Region"
-    status_col = cols[5] if len(cols) > 5 else cols[-1]
-    id_col = cols[3] if len(cols) > 3 else cols[2]
-
-    df_sub = df_bracket_raw[df_bracket_raw[cat_col].astype(str).str.strip().str.lower() == category_name.lower()].copy()
-
-    if df_sub.empty:
-        st.info(f"No records found for '{category_name}'.")
-        return
-
-    pivot_b = pd.pivot_table(
-        df_sub,
-        index=region_col,
-        columns=status_col,
-        values=id_col,
-        aggfunc="nunique",
-        fill_value=0
-    )
-
-    for status in ["Fixed", "Not Fix"]:
-        if status not in pivot_b.columns:
-            pivot_b[status] = 0
-
-    pivot_b = pivot_b[["Fixed", "Not Fix"]]
-    pivot_b["Grand Total"] = pivot_b.sum(axis=1)
-    gt_row = pivot_b.sum(axis=0)
-    gt_row.name = "Grand Total"
-    final_b_table = pd.concat([pivot_b, gt_row.to_frame().T])
-
-    final_b_disp = final_b_table.reset_index() if final_b_table.index.name else final_b_table.copy()
-    clean_key = category_name.lower().replace(" ", "_")
-
-    event_b = st.dataframe(
-        final_b_disp,
-        use_container_width=True,
-        hide_index=True,
-        selection_mode="single-cell",
-        on_select="rerun",
-        key=f"bracket_{clean_key}"
-    )
-
-    if event_b and event_b.selection and event_b.selection.cells:
-        cell = event_b.selection.cells[0]
-        r_idx = cell["row"]
-        selected_col = cell["column"]
-        first_col = final_b_disp.columns[0]
-        selected_region = final_b_disp.iloc[r_idx][first_col]
-
-        if selected_col != first_col and str(selected_region) != "Grand Total" and str(selected_col) != "Grand Total":
-            filtered_b_raw = df_sub[
-                (df_sub[region_col].astype(str).str.strip() == str(selected_region).strip()) &
-                (df_sub[status_col].astype(str).str.strip() == str(selected_col).strip())
-            ]
-            with st.expander(f"🔎 Raw Data: [{category_name} | Region: **{selected_region}** | Status: **{selected_col}**] — ({len(filtered_b_raw)} Rows)", expanded=True):
-                st.dataframe(filtered_b_raw, use_container_width=True)
-
-
 # ==============================================================================
 # ၂။ PAGE 2 Logic (view_mode ၏ condition များသည် selected_page အောက်တွင် ရှိရပါမည်)
 # ==============================================================================
