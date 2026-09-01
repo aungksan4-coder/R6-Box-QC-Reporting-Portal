@@ -1180,7 +1180,7 @@ elif view_mode == "Bracket Summary":
         st.error(f"Error loading 'Bracket Issue': {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
-    elif view_mode == "📷 Photo for Box Fixed & Issues":
+elif view_mode == "📷 Photo for Box Fixed & Issues":
         with st.container():
             st.markdown("### 📷 Issues & Fixed Photos")
 
