@@ -474,8 +474,18 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
 
     if event_b and event_b.selection and event_b.selection.cells:
         cell = event_b.selection.cells[0]
-        r_idx = cell["row"]
-        selected_col = cell["column"]
+        
+        # Tuple (0, 1) သို့မဟုတ် Dict {"row": 0, "column": ...} စစ်ပေးခြင်း
+        if isinstance(cell, (tuple, list)):
+            r_idx = cell[0]
+            c_val = cell[1]
+        else:
+            r_idx = cell.get("row")
+            c_val = cell.get("column")
+
+        # Index Number (int) ဖြစ်နေပါက Column Name သို့ ပြောင်းပေးခြင်း
+        selected_col = final_b_disp.columns[c_val] if isinstance(c_val, int) else c_val
+
         first_col = final_b_disp.columns[0]
         selected_region = final_b_disp.iloc[r_idx][first_col]
 
@@ -1087,8 +1097,18 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
                     if event_clean and event_clean.selection and event_clean.selection.cells:
                         cell = event_clean.selection.cells[0]
-                        r_idx = cell["row"]
-                        selected_col = cell["column"]
+                        
+                        # Tuple (0, 1) သို့မဟုတ် Dict {"row": 0, "column": ...} စစ်ပေးခြင်း
+                        if isinstance(cell, (tuple, list)):
+                            r_idx = cell[0]
+                            c_val = cell[1]
+                        else:
+                            r_idx = cell.get("row")
+                            c_val = cell.get("column")
+
+                        # Index Number ဖြစ်နေပါက Column Name သို့ ပြောင်းပေးခြင်း
+                        selected_col = final_clean_disp.columns[c_val] if isinstance(c_val, int) else c_val
+
                         first_col = final_clean_disp.columns[0]
                         selected_city = final_clean_disp.iloc[r_idx][first_col]
 
