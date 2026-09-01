@@ -943,22 +943,8 @@ elif category == "Cross Team Raw":
             st.error(f"Error loading Cross Team Raw view: {e}")
             
 # ==============================================================================
-# PAGE 2: MSOps6 & FiberOps6 Box Data
 # ==============================================================================
-elif selected_page == "MSOps6 & FiberOps6 Box Data":
-
-    view_mode = st.sidebar.radio(
-        "Select Box Analysis View",
-        [
-            "Box Summary",
-            "Bracket Summary",
-            "📷 Photo for Box Fixed & Issues"
-        ]
-    )
-    st.sidebar.markdown("---")
-
-# ==============================================================================
-# ၁။ Helper Function ကို အပေါ်မှာ သီးသန့် အရင် ထားပေးပါ
+# ၁။ Helper Function (Page Logic ၏ အထက်/အပြင်ဘက်တွင် သီးခြား ထားပါ)
 # ==============================================================================
 def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
     """
@@ -974,7 +960,6 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
     status_col = cols[5] if len(cols) > 5 else cols[-1]
     id_col = cols[3] if len(cols) > 3 else cols[2]
 
-    # Filter data by category name
     df_sub = df_bracket_raw[df_bracket_raw[cat_col].astype(str).str.strip().str.lower() == category_name.lower()].copy()
 
     if df_sub.empty:
@@ -1000,7 +985,6 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
     gt_row.name = "Grand Total"
     final_b_table = pd.concat([pivot_b, gt_row.to_frame().T])
 
-    # Dynamic interactive pivot table setup
     final_b_disp = final_b_table.reset_index() if final_b_table.index.name else final_b_table.copy()
     clean_key = category_name.lower().replace(" ", "_")
 
@@ -1013,7 +997,6 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
         key=f"bracket_{clean_key}"
     )
 
-    # Drill-down handler for Bracket tables
     if event_b and event_b.selection and event_b.selection.cells:
         cell = event_b.selection.cells[0]
         r_idx = cell["row"]
@@ -1031,156 +1014,166 @@ def render_bracket_pivot_and_chart(df_bracket_raw, category_name):
 
 
 # ==============================================================================
-# ၂။ UI View Condition (if နှင့် elif တိုက်ရိုက် ဆက်နေရပါမည်)
+# ၂။ PAGE 2 Logic (view_mode ၏ condition များသည် selected_page အောက်တွင် ရှိရပါမည်)
 # ==============================================================================
-if view_mode == "Box Summary":
+elif selected_page == "MSOps6 & FiberOps6 Box Data":
+
+    view_mode = st.sidebar.radio(
+        "Select Box Analysis View",
+        [
+            "Box Summary",
+            "Bracket Summary",
+            "📷 Photo for Box Fixed & Issues"
+        ]
+    )
+    st.sidebar.markdown("---")
+
+    # view_mode ၏ Condition များသည် Space 4 ခြားပြီး selected_page ၏ အောက်တွင် ရှိနေရပါမည်
+    if view_mode == "Box Summary":
         
-    # ROW 1: Clean Box Inside vs. Maintain Box
-    r1_col1, r1_col2 = st.columns(2)
+        # ROW 1: Clean Box Inside vs. Maintain Box
+        r1_col1, r1_col2 = st.columns(2)
 
-    with r1_col1:
-        st.markdown("### Need to Clean Box Inside")
+        with r1_col1:
+            st.markdown("### Need to Clean Box Inside")
+            try:
+                df_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
+
+                if df_clean.empty:
+                    st.warning("No data found in 'Need To Clean Box Inside'.")
+                else:
+                    cols = list(df_clean.columns)
+                    city_col = cols[0] if len(cols) > 0 else "City"
+                    team_col = cols[1] if len(cols) > 1 and "team" in str(cols[1]).lower() else None
+                    site_code_col = cols[3] if len(cols) > 3 else cols[min(2, len(cols)-1)]
+                    fix_status_col = cols[5] if len(cols) > 5 else cols[min(4, len(cols)-1)]
+
+                    df_clean_proc = df_clean.dropna(subset=[city_col, fix_status_col]).copy()
+                    df_clean_proc[city_col] = df_clean_proc[city_col].astype(str).str.strip()
+                    df_clean_proc[fix_status_col] = df_clean_proc[fix_status_col].astype(str).str.strip()
+                    df_clean_proc[site_code_col] = df_clean_proc[site_code_col].astype(str).str.strip()
+
+                    index_cols = [team_col, city_col] if team_col and team_col in df_clean_proc.columns else city_col
+
+                    pivot_clean = pd.pivot_table(
+                        df_clean_proc,
+                        index=index_cols,
+                        columns=fix_status_col,
+                        values=site_code_col,
+                        aggfunc="nunique",
+                        fill_value=0
+                    )
+
+                    for col_name in ["Fixed", "Not Fix"]:
+                        if col_name not in pivot_clean.columns:
+                            pivot_clean[col_name] = 0
+
+                    pivot_clean = pivot_clean[["Fixed", "Not Fix"]]
+                    pivot_clean["Grand Total"] = pivot_clean.sum(axis=1)
+
+                    gt_row = pivot_clean.sum(axis=0)
+                    gt_row.name = "Grand Total"
+                    final_clean_table = pd.concat([pivot_clean, gt_row.to_frame().T])
+
+                    final_clean_disp = final_clean_table.reset_index() if final_clean_table.index.name else final_clean_table.copy()
+
+                    event_clean = st.dataframe(
+                        final_clean_disp,
+                        use_container_width=True,
+                        hide_index=True,
+                        selection_mode="single-cell",
+                        on_select="rerun",
+                        key="box_summary_clean"
+                    )
+
+                    if event_clean and event_clean.selection and event_clean.selection.cells:
+                        cell = event_clean.selection.cells[0]
+                        r_idx = cell["row"]
+                        selected_col = cell["column"]
+                        first_col = final_clean_disp.columns[0]
+                        selected_city = final_clean_disp.iloc[r_idx][first_col]
+
+                        if selected_col != first_col and str(selected_city) != "Grand Total" and str(selected_col) != "Grand Total":
+                            filtered_clean_raw = df_clean_proc[
+                                (df_clean_proc[city_col].astype(str).str.strip() == str(selected_city).strip()) & 
+                                (df_clean_proc[fix_status_col].astype(str).str.strip() == str(selected_col).strip())
+                            ]
+                            with st.expander(f"🔎 Clean Box Raw Data: [{city_col}: **{selected_city}** | Status: **{selected_col}**] — ({len(filtered_clean_raw)} Rows)", expanded=True):
+                                st.dataframe(filtered_clean_raw, use_container_width=True)
+
+                    fig_clean = render_fixed_not_fix_chart(pivot_clean, category_label=city_col)
+                    if fig_clean:
+                        st.plotly_chart(fig_clean, use_container_width=True)
+
+            except Exception as e:
+                st.error(f"Error loading 'Need To Clean Box Inside': {e}")
+
+        with r1_col2:
+            st.markdown("### Need to Maintain Box")
+            render_city_status_pivot_and_chart("Need to maintain Box", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=6)
+
+        st.markdown("---")
+
+        # ROW 2: Install Pencil Kit Holder vs. Install Cable Holder
+        r2_col1, r2_col2 = st.columns(2)
+
+        with r2_col1:
+            st.markdown("### Need To Install Pencil Kit Holder")
+            render_city_status_pivot_and_chart("Need To Install Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
+
+        with r2_col2:
+            st.markdown("### Need To Install Cable Holder")
+            render_city_status_pivot_and_chart("Need To Install Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
+
+        st.markdown("---")
+
+        # ROW 3: Fix Pencil Kit Holder vs. Fix Cable Holder
+        r3_col1, r3_col2 = st.columns(2)
+
+        with r3_col1:
+            st.markdown("### Need To Fix Pencil Kit Holder")
+            render_city_status_pivot_and_chart("Need To Fix Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
+
+        with r3_col2:
+            st.markdown("### Need To Fix Cable Holder")
+            render_city_status_pivot_and_chart("Need To Fix Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
+
+    elif view_mode == "Bracket Summary":
+
         try:
-            df_clean = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Need To Clean Box Inside")
+            with st.container():
+                df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
 
-            if df_clean.empty:
-                st.warning("No data found in 'Need To Clean Box Inside'.")
-            else:
-                cols = list(df_clean.columns)
-                city_col = cols[0] if len(cols) > 0 else "City"
-                team_col = cols[1] if len(cols) > 1 and "team" in str(cols[1]).lower() else None
-                site_code_col = cols[3] if len(cols) > 3 else cols[min(2, len(cols)-1)]
-                fix_status_col = cols[5] if len(cols) > 5 else cols[min(4, len(cols)-1)]
+                if df_bracket_raw.empty:
+                    st.warning("No data found in 'Bracket Issue' tab.")
+                else:
+                    b1_col1, b1_col2 = st.columns(2)
 
-                df_clean_proc = df_clean.dropna(subset=[city_col, fix_status_col]).copy()
-                df_clean_proc[city_col] = df_clean_proc[city_col].astype(str).str.strip()
-                df_clean_proc[fix_status_col] = df_clean_proc[fix_status_col].astype(str).str.strip()
-                df_clean_proc[site_code_col] = df_clean_proc[site_code_col].astype(str).str.strip()
+                    with b1_col1:
+                        st.markdown("### Bracket full")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
 
-                index_cols = [team_col, city_col] if team_col and team_col in df_clean_proc.columns else city_col
+                    with b1_col2:
+                        st.markdown("### Bracket lost")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
 
-                pivot_clean = pd.pivot_table(
-                    df_clean_proc,
-                    index=index_cols,
-                    columns=fix_status_col,
-                    values=site_code_col,
-                    aggfunc="nunique",
-                    fill_value=0
-                )
+                    st.markdown("---")
 
-                for col_name in ["Fixed", "Not Fix"]:
-                    if col_name not in pivot_clean.columns:
-                        pivot_clean[col_name] = 0
+                    b2_col1, b2_col2 = st.columns(2)
 
-                pivot_clean = pivot_clean[["Fixed", "Not Fix"]]
-                pivot_clean["Grand Total"] = pivot_clean.sum(axis=1)
+                    with b2_col1:
+                        st.markdown("### Bracket damage")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
 
-                gt_row = pivot_clean.sum(axis=0)
-                gt_row.name = "Grand Total"
-                final_clean_table = pd.concat([pivot_clean, gt_row.to_frame().T])
-
-                # Interactive Pivot Table Display
-                final_clean_disp = final_clean_table.reset_index() if final_clean_table.index.name else final_clean_table.copy()
-
-                event_clean = st.dataframe(
-                    final_clean_disp,
-                    use_container_width=True,
-                    hide_index=True,
-                    selection_mode="single-cell",
-                    on_select="rerun",
-                    key="box_summary_clean"
-                )
-
-                # Drill-down handler for Clean Box Inside Table
-                if event_clean and event_clean.selection and event_clean.selection.cells:
-                    cell = event_clean.selection.cells[0]
-                    r_idx = cell["row"]
-                    selected_col = cell["column"]
-                    first_col = final_clean_disp.columns[0]
-                    selected_city = final_clean_disp.iloc[r_idx][first_col]
-
-                    if selected_col != first_col and str(selected_city) != "Grand Total" and str(selected_col) != "Grand Total":
-                        filtered_clean_raw = df_clean_proc[
-                            (df_clean_proc[city_col].astype(str).str.strip() == str(selected_city).strip()) & 
-                            (df_clean_proc[fix_status_col].astype(str).str.strip() == str(selected_col).strip())
-                        ]
-                        with st.expander(f"🔎 Clean Box Raw Data: [{city_col}: **{selected_city}** | Status: **{selected_col}**] — ({len(filtered_clean_raw)} Rows)", expanded=True):
-                            st.dataframe(filtered_clean_raw, use_container_width=True)
-
-                fig_clean = render_fixed_not_fix_chart(pivot_clean, category_label=city_col)
-                if fig_clean:
-                    st.plotly_chart(fig_clean, use_container_width=True)
+                    with b2_col2:
+                        st.markdown("### Need to install Bracket")
+                        render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
 
         except Exception as e:
-            st.error(f"Error loading 'Need To Clean Box Inside': {e}")
-
-    with r1_col2:
-        st.markdown("### Need to Maintain Box")
-        render_city_status_pivot_and_chart("Need to maintain Box", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=6)
-
-    st.markdown("---")
-
-    # ROW 2: Install Pencil Kit Holder vs. Install Cable Holder
-    r2_col1, r2_col2 = st.columns(2)
-
-    with r2_col1:
-        st.markdown("### Need To Install Pencil Kit Holder")
-        render_city_status_pivot_and_chart("Need To Install Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-    with r2_col2:
-        st.markdown("### Need To Install Cable Holder")
-        render_city_status_pivot_and_chart("Need To Install Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-    st.markdown("---")
-
-    # ROW 3: Fix Pencil Kit Holder vs. Fix Cable Holder
-    r3_col1, r3_col2 = st.columns(2)
-
-    with r3_col1:
-        st.markdown("### Need To Fix Pencil Kit Holder")
-        render_city_status_pivot_and_chart("Need To Fix Pencil Kit Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-    with r3_col2:
-        st.markdown("### Need To Fix Cable Holder")
-        render_city_status_pivot_and_chart("Need To Fix Cable Holder", city_col_idx=0, site_code_col_idx=3, fix_status_col_idx=5)
-
-# VIEW 2: BRACKET SUMMARY (if ၏ တိုက်ရိုက် အဆက်အဖြစ် တည်ရှိရပါမည်)
-elif view_mode == "Bracket Summary":
-
-    try:
-        with st.container():
-            df_bracket_raw = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Bracket Issue")
-
-            if df_bracket_raw.empty:
-                st.warning("No data found in 'Bracket Issue' tab.")
-            else:
-                b1_col1, b1_col2 = st.columns(2)
-
-                with b1_col1:
-                    st.markdown("### Bracket full")
-                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket full")
-
-                with b1_col2:
-                    st.markdown("### Bracket lost")
-                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket lost")
-
-                st.markdown("---")
-
-                b2_col1, b2_col2 = st.columns(2)
-
-                with b2_col1:
-                    st.markdown("### Bracket damage")
-                    render_bracket_pivot_and_chart(df_bracket_raw, "Bracket damage")
-
-                with b2_col2:
-                    st.markdown("### Need to install Bracket")
-                    render_bracket_pivot_and_chart(df_bracket_raw, "Need to install Bracket")
-
-    except Exception as e:
-        st.error(f"Error loading 'Bracket Issue': {e}")
+            st.error(f"Error loading 'Bracket Issue': {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
-elif view_mode == "📷 Photo for Box Fixed & Issues":
+    elif view_mode == "📷 Photo for Box Fixed & Issues":
         with st.container():
             st.markdown("### 📷 Issues & Fixed Photos")
 
