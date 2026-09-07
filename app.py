@@ -28,44 +28,46 @@ def _custom_styled_html_dataframe(data, *args, **kwargs):
         # DataFrame ကို HTML ဇယားအဖြစ် ပြောင်းခြင်း
         html_table = display_df.to_html(index=show_index, classes="g-sheet-pivot", escape=False)
         
-        # Google Sheets Pivot Table ပုံစံ CSS Style
-        custom_css = """
-        <style>
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
-            border-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .g-sheet-pivot {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            background-color: white;
-        }
-        .g-sheet-pivot th {
-            background-color: #E8F0FE; /* Pivot Header အရောင် (အပြာနုရောင်) */
-            color: #1A73E8; /* စာလုံးအရောင် (အပြာရင့်/အမဲ) */
-            font-weight: 700;
-            padding: 10px 12px;
-            border: 1px solid #bdc1c6;
-            text-align: left;
-        }
-        .g-sheet-pivot td {
-            padding: 8px 12px;
-            border: 1px solid #e0e0e0;
-            color: #202124;
-        }
-        .g-sheet-pivot tbody tr:hover td {
-            background-color: #F1F3F4; /* Mouse တင်လျှင် မီးခိုးနုရောင် ပြောင်းရန် */
-        }
-        </style>
-        """
-        
-        # Streamlit တွင် HTML အဖြစ် ပြသခြင်း
-        st.markdown(f"{custom_css}<div class='table-wrapper'>{html_table}</div>", unsafe_allow_html=True)
+        # CSS တွင် {} များကို {{ }} ဖြင့်ပြောင်းထားပြီး Space မခြားဘဲ ရေးထားပါသည်
+        custom_html = f"""
+<style>
+.table-wrapper {{
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}}
+.g-sheet-pivot {{
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    background-color: white;
+}}
+.g-sheet-pivot th {{
+    background-color: #E8F0FE;
+    color: #1A73E8;
+    font-weight: bold;
+    padding: 10px 12px;
+    border: 1px solid #bdc1c6;
+    text-align: left;
+}}
+.g-sheet-pivot td {{
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    color: #202124;
+}}
+.g-sheet-pivot tbody tr:hover td {{
+    background-color: #F1F3F4;
+}}
+</style>
+<div class="table-wrapper">
+{html_table}
+</div>
+"""
+        # HTML အဖြစ် အတိအကျ Render လုပ်ရန်
+        st.markdown(custom_html, unsafe_allow_html=True)
         return
     
     # DataFrame မဟုတ်ပါက မူလအတိုင်း ဆက်အလုပ်လုပ်ရန်
