@@ -95,6 +95,28 @@ st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 KEY_REPORT_SHEET_ID = "1LMyLbXSJOTpZUDCjJp6RrY_6slpEmYnLGH1vPqL-VxY"
 BOX_DATA_SHEET_ID = "1CIQgVNrAzm-WiuDPqcUxH59eSq5Oq15_qyts2fcX6A0"
 
+def load_global_date_settings(min_d, max_d):
+    try:
+        response = supabase.storage.from_(BUCKET_NAME).download("global_dates.json")
+        data = json.loads(response.decode("utf-8"))
+        s_d = pd.to_datetime(data["start"]).date()
+        e_d = pd.to_datetime(data["end"]).date()
+        return s_d, e_d
+    except Exception:
+        # File မရှိသေးပါက Default Date ကိုသာ ပြပေးပါမည်
+        return min_d, max_d
+
+def save_global_date_settings(start_date, end_date):
+    try:
+        data = {"start": start_date.strftime("%Y-%m-%d"), "end": end_date.strftime("%Y-%m-%d")}
+        supabase.storage.from_(BUCKET_NAME).upload(
+            path="global_dates.json",
+            file=json.dumps(data).encode("utf-8"),
+            file_options={"upsert": "true", "content-type": "application/json"}
+        )
+    except Exception as e:
+        st.sidebar.error(f"Global date sync error: {e}")
+
 # --- DATA FETCHING (1-minute TTL) ---
 @st.cache_data(ttl=300)
 def fetch_sheet_tab(sheet_id: str, tab_name: str) -> pd.DataFrame:
@@ -106,28 +128,28 @@ def fetch_sheet_tab(sheet_id: str, tab_name: str) -> pd.DataFrame:
 
 # --- PERSISTENT DATE PICKER HELPER ---
 def get_persistent_date_range(key_prefix: str, min_d, max_d):
-    qp = st.query_params
-    start_param = qp.get(f"{key_prefix}_start")
-    end_param = qp.get(f"{key_prefix}_end")
-    
-    default_val = (min_d, max_d)
-    if start_param and end_param:
-        try:
-            s = pd.to_datetime(start_param).date()
-            e = pd.to_datetime(end_param).date()
-            if min_d <= s <= max_d and min_d <= e <= max_d:
-                default_val = (s, e)
-        except Exception:
-            pass
+    # 1. Supabase Storage ထဲမှ အားလုံးအတွက် သိမ်းထားသော Date ကို လှမ်းယူခြင်း
+    global_s, global_e = load_global_date_settings(min_d, max_d)
 
+    # 2. Date ပြောင်းလိုက်သည့်အခါ Storage ပေါ်သို့ သွားသိမ်းပေးမည့် Callback
+    def on_date_change():
+        sel = st.session_state[f"{key_prefix}_picker"]
+        if isinstance(sel, (tuple, list)) and len(sel) == 2:
+            save_global_date_settings(sel[0], sel[1])
+        elif isinstance(sel, (tuple, list)) and len(sel) == 1:
+            save_global_date_settings(sel[0], sel[0])
+
+    # 3. Sidebar တွင် Date Picker ပြသခြင်း
     date_selection = st.sidebar.date_input(
         "Filter Date Range",
-        value=default_val,
+        value=(global_s, global_e),
         min_value=min_d,
         max_value=max_d,
-        key=f"{key_prefix}_picker"
+        key=f"{key_prefix}_picker",
+        on_change=on_date_change
     )
 
+    # 4. လက်ရှိ URL Query Params တွင်ပါ ထည့်သွင်းခြင်း (Fallback / URL Sharing အတွက်)
     if isinstance(date_selection, (tuple, list)) and len(date_selection) == 2:
         s_d, e_d = date_selection
         st.query_params[f"{key_prefix}_start"] = s_d.strftime("%Y-%m-%d")
@@ -139,8 +161,7 @@ def get_persistent_date_range(key_prefix: str, min_d, max_d):
         st.query_params[f"{key_prefix}_end"] = s_d.strftime("%Y-%m-%d")
         return s_d, s_d
 
-    return min_d, max_d
-
+    return global_s, global_e
 # --- PERSISTENT SORTING HELPER ---
 def sort_table_preserve_gt(df_table, sort_by="Grand Total", ascending=False):
     if df_table.empty or len(df_table) <= 1:
