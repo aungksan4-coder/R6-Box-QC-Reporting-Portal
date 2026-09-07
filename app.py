@@ -649,15 +649,15 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
     view_mode = st.sidebar.radio(
         "Select Box Analysis View",
         [
-            "Box QC",
+            "Box Summary",
             "Bracket Summary",
             "📷 Photo for Box Fixed & Issues"
         ]
     )
     st.sidebar.markdown("---")
 
-    # --- VIEW 1: COMBINED Box QC ---
-    if view_mode == "Box QC":
+    # --- VIEW 1: COMBINED BOX SUMMARY ---
+    if view_mode == "Box Summary":
         
         # ROW 1: Clean Box Inside vs. Maintain Box
         r1_col1, r1_col2 = st.columns(2)
