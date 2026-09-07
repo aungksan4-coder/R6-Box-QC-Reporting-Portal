@@ -405,7 +405,7 @@ st.sidebar.markdown("---")
 # PAGE 1: KEY REPORT DATA
 # ==============================================================================
 if selected_page == "Key Report Data":
-    category = st.sidebar.radio("Select View Category", ["Key Raw", "Box Raw", "Cross Team Raw"])
+    category = st.sidebar.radio("Select View Category", ["Key Summary", "Box Summary", "Cross Team Summary"])
     st.sidebar.markdown("---")
 
     st.sidebar.header("📊 Persistent Sorting")
@@ -439,8 +439,8 @@ if selected_page == "Key Report Data":
 
     st.sidebar.markdown("---")
 
-    if category == "Key Raw":
-        st.sidebar.header("⚙️ Column Mapping (Key Raw)")
+    if category == "Key Summary":
+        st.sidebar.header("⚙️ Column Mapping (Key Summary)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Key Raw")
             cols = list(df_raw.columns)
@@ -492,10 +492,10 @@ if selected_page == "Key Report Data":
             with c4: st.dataframe(reg_pct, use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error loading Key Raw view: {e}")
+            st.error(f"Error loading Key Summary view: {e}")
 
-    elif category == "Box Raw":
-        st.sidebar.header("⚙️ Column Mapping (Box Raw)")
+    elif category == "Box Summary":
+        st.sidebar.header("⚙️ Column Mapping (Box Summary)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Box Raw")
             cols = list(df_raw.columns)
@@ -583,10 +583,10 @@ if selected_page == "Key Report Data":
                 st.dataframe(sort_table_preserve_gt(lw_fc_df, sort_by_choice, is_ascending), use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error loading Box Raw view: {e}")
+            st.error(f"Error loading Box Summary view: {e}")
 
-    elif category == "Cross Team Raw":
-        st.sidebar.header("⚙️ Column Mapping (Cross Team Raw)")
+    elif category == "Cross Team Summary":
+        st.sidebar.header("⚙️ Column Mapping (Cross Team Summary)")
         try:
             df_raw = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "Cross Team Raw")
             cols = list(df_raw.columns)
@@ -639,7 +639,7 @@ if selected_page == "Key Report Data":
                 st.markdown("---")
 
         except Exception as e:
-            st.error(f"Error loading Cross Team Raw view: {e}")
+            st.error(f"Error loading Cross Team Summary view: {e}")
             
 # ==============================================================================
 # PAGE 2: MSOps6 & FiberOps6 Box Data
