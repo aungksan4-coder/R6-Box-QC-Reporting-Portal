@@ -9,7 +9,7 @@ import streamlit as st
 from supabase import create_client
 
 # =========================================================================
-# --- GLOBAL DATAFRAME OVERRIDE (Google Sheets Pivot Style) ---
+# --- GLOBAL DATAFRAME OVERRIDE (Google Sheets Pivot Style - Fixed Header) ---
 # =========================================================================
 _original_dataframe = st.dataframe
 
@@ -17,18 +17,17 @@ def _custom_styled_html_dataframe(data, *args, **kwargs):
     if isinstance(data, pd.DataFrame):
         display_df = data.copy()
         
-        # Column ခေါင်းစဉ်များကို စာလုံးအကြီး (UPPERCASE) ပြောင်းရန်
+        # (၁) Pandas Pivot ရဲ့ Index ခေါင်းစဉ် (ဥပမာ REGION) အောက်ရောက်နေတာကို ပြင်ရန်
+        # Index ကို သာမန် Column အဖြစ် ပြောင်းလိုက်ခြင်းဖြင့် ခေါင်းစဉ်အားလုံး တစ်တန်းတည်း ဖြစ်သွားစေပါမယ်
+        if not isinstance(display_df.index, pd.RangeIndex):
+            display_df = display_df.reset_index()
+        
+        # (၂) Column ခေါင်းစဉ်များကို စာလုံးအကြီး (UPPERCASE) ပြောင်းရန်
         display_df.columns = [str(col).upper() for col in display_df.columns]
-        if display_df.index.name:
-            display_df.index.name = str(display_df.index.name).upper()
             
-        # ဇယားမှာ ရှေ့ဆုံးက 0,1,2 (Index) တွေ ဖျောက်ထားချင်ရင် ဖျောက်ပေးရန်
-        show_index = not kwargs.get("hide_index", False)
+        # (၃) 0,1,2 အညွှန်းနံပါတ်များ မပေါ်စေရန် index=False ဖြင့် HTML ပြောင်းပါမယ်
+        html_table = display_df.to_html(index=False, classes="g-sheet-pivot", escape=False)
         
-        # DataFrame ကို HTML ဇယားအဖြစ် ပြောင်းခြင်း
-        html_table = display_df.to_html(index=show_index, classes="g-sheet-pivot", escape=False)
-        
-        # CSS တွင် {} များကို {{ }} ဖြင့်ပြောင်းထားပြီး Space မခြားဘဲ ရေးထားပါသည်
         custom_html = f"""
 <style>
 .table-wrapper {{
@@ -58,6 +57,11 @@ def _custom_styled_html_dataframe(data, *args, **kwargs):
     border: 1px solid #e0e0e0;
     color: #202124;
 }}
+/* ရှေ့ဆုံး Column (ဥပမာ MDY, OC) ကို အပြာရောင် Bold အဖြစ် ပြရန် */
+.g-sheet-pivot td:first-child {{
+    font-weight: bold;
+    color: #1A73E8;
+}}
 .g-sheet-pivot tbody tr:hover td {{
     background-color: #F1F3F4;
 }}
@@ -66,11 +70,9 @@ def _custom_styled_html_dataframe(data, *args, **kwargs):
 {html_table}
 </div>
 """
-        # HTML အဖြစ် အတိအကျ Render လုပ်ရန်
         st.markdown(custom_html, unsafe_allow_html=True)
         return
     
-    # DataFrame မဟုတ်ပါက မူလအတိုင်း ဆက်အလုပ်လုပ်ရန်
     return _original_dataframe(data, *args, **kwargs)
 
 # Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို အစားထိုးခြင်း
