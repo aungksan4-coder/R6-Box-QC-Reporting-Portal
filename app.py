@@ -546,10 +546,9 @@ if selected_page == "Key Report Data":
                 df_last_week = df_raw
                 date_hdr, lw_date_hdr = "", ""
 
-            top_col1, top_col2 = st.columns(2)
-
-            with top_col1:
-                # --- ၁။ Box Ops QC ကို အပေါ်ဆုံးကို ရွှေ့လိုက်ပါပြီ ---
+            top_row_col, empty_col = st.columns(2)
+            
+            with top_row_col:
                 st.markdown(f"**Box Ops QC (R6 MDY & R6 OC) {date_hdr}**")
                 try:
                     summary_df = fetch_sheet_tab(KEY_REPORT_SHEET_ID, "R6 Box QC Summary")
@@ -575,18 +574,19 @@ if selected_page == "Key Report Data":
                         st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True)
                 except Exception:
                     st.info("Loading summary table...")
-                
-                # ဇယားနှစ်ခုကြား space လေးခြားဖို့ ထည့်ပေးထားတာပါ
-                st.markdown("<br>", unsafe_allow_html=True) 
 
-                # --- ၂။ မူလက top_col1 မှာရှိတဲ့ R6 Box Touch ကို အောက်မှာ ဆက်ရေးလိုက်ပါပြီ ---
+            st.markdown("<br>", unsafe_allow_html=True) # အပေါ်နဲ့ အောက် ဇယားတွေကြား space လေးခြားရန်
+            
+            # --- (၂) ဒုတိယ Row: အောက်က Table ၂ ခုကို Column အသစ် ၂ ခု ပြန်ခွဲပြီး ယှဉ်ပြပါမယ် ---
+            mid_col1, mid_col2 = st.columns(2)
+
+            with mid_col1:
                 st.markdown("**R6 Box Touch Pass/ Fail Result**")
                 cnt_pf, pct_pf = build_count_and_pct_pivots(df_filtered, region_col, final_status_col, box_col, ["Pass", "Fail"])
                 st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
                 st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
 
-            with top_col2:
-                # --- ၃။ top_col2 မှာရှိတဲ့ R6 Fail Result ကတော့ သူ့နေရာသူ (ညာဘက်ခြမ်းမှာ) ဆက်ရှိနေပါမယ် ---
+            with mid_col2:
                 st.markdown("**R6 Fail Result ( Take Action and No Take Action)**")
                 fail_df = df_filtered[df_filtered[final_status_col].astype(str).str.upper() == "FAIL"]
                 cnt_fr, pct_fr = build_count_and_pct_pivots(fail_df, region_col, fail_status_col, box_col, ["No Take Action", "Take Action"])
