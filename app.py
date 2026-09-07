@@ -8,6 +8,30 @@ import plotly.express as px
 import streamlit as st
 from supabase import create_client
 
+# =========================================================================
+# --- GLOBAL DATAFRAME STYLING (Table Title များကို Bold ဖြစ်စေရန်) ---
+# =========================================================================
+_original_dataframe = st.dataframe
+
+def _custom_styled_dataframe(data, *args, **kwargs):
+    # Data က DataFrame ဖြစ်နေမှသာ Style ချိန်းပါမယ်
+    if isinstance(data, pd.DataFrame):
+        # Header (Title) တွေကို Bold ဖြစ်စေဖို့ Pandas Styler ကို သုံးခြင်း
+        styles = [
+            dict(selector="th", props=[
+                ("font-size", "15px"),      # စာလုံးအရွယ်အစား နည်းနည်း ကြီးရန်
+                ("font-weight", "900"),     # စာလုံး အထူ (Bold) ဖြစ်ရန်
+                ("text-transform", "uppercase") # (Optional) စာလုံးကြီး (Capital) ပြောင်းချင်ရင် ထားခဲ့ပါ
+            ])
+        ]
+        # Styler object အဖြစ်ပြောင်းပြီးမှ မူလ st.dataframe ဆီပို့ပေးပါမယ်
+        data = data.style.set_table_styles(styles)
+    
+    return _original_dataframe(data, *args, **kwargs)
+
+# Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို custom function ဖြင့် အစားထိုးခြင်း (Monkey Patch)
+st.dataframe = _custom_styled_dataframe
+# =========================================================================
 
 @st.cache_resource
 def init_supabase():
