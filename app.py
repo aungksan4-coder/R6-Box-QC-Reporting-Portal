@@ -569,9 +569,12 @@ if selected_page == "Key Report Data":
 
                         sliced = sliced.map(clean_number)
                         sliced = sliced[~sliced["Region"].astype(str).str.lower().isin(["region", "", "nan"])].reset_index(drop=True)
-                        st.dataframe(sliced, use_container_width=True)
+                        
+                        # ဒီနေရာမှာ hide_index=True လေး ထည့်လိုက်ပါပြီ
+                        st.dataframe(sliced, use_container_width=True, hide_index=True)
                     else:
-                        st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True)
+                        # ဒီနေရာမှာလည်း hide_index=True လေး ထည့်လိုက်ပါပြီ
+                        st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True, hide_index=True)
                 except Exception:
                     st.info("Loading summary table...")
 
