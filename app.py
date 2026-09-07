@@ -9,47 +9,70 @@ import streamlit as st
 from supabase import create_client
 
 # =========================================================================
-# --- GLOBAL DATAFRAME OVERRIDE (Table Title များကို Bold & Dark Black ပြောင်းရန်) ---
+# --- GLOBAL DATAFRAME OVERRIDE (Google Sheets Pivot Style) ---
 # =========================================================================
 _original_dataframe = st.dataframe
 
-# သာမန်စာလုံးများကို Bold စာလုံးများ (Unicode) အဖြစ်ပြောင်းပေးမည့် Function
-def to_bold_unicode(text):
-    if pd.isna(text):
-        return ""
-    res = []
-    for c in str(text):
-        if 'A' <= c <= 'Z':
-            res.append(chr(ord(c) - ord('A') + 0x1D5D4))
-        elif 'a' <= c <= 'z':
-            res.append(chr(ord(c) - ord('a') + 0x1D5EE))
-        elif '0' <= c <= '9':
-            res.append(chr(ord(c) - ord('0') + 0x1D7EC))
-        else:
-            res.append(c)
-    return "".join(res)
-
-def _custom_bold_dataframe(data, *args, **kwargs):
-    # Data က DataFrame ဖြစ်နေမှသာ အလုပ်လုပ်ပါမယ်
+def _custom_styled_html_dataframe(data, *args, **kwargs):
     if isinstance(data, pd.DataFrame):
-        # မူရင်း Data ကိုမထိခိုက်အောင် Copy ကူးပါမယ် (တွက်ချက်မှုတွေ မလွဲအောင်လို့ပါ)
         display_df = data.copy()
         
-        # Column ခေါင်းစဉ်အားလုံးကို Bold Unicode စာလုံးများအဖြစ် ပြောင်းမယ်
-        display_df.columns = [to_bold_unicode(col) for col in display_df.columns]
-        
-        # ဘေးဘက်က Index ခေါင်းစဉ် (ဥပမာ - Team, Region) ကိုပါ Bold ပြောင်းမယ်
+        # Column ခေါင်းစဉ်များကို စာလုံးအကြီး (UPPERCASE) ပြောင်းရန်
+        display_df.columns = [str(col).upper() for col in display_df.columns]
         if display_df.index.name:
-            display_df.index.name = to_bold_unicode(display_df.index.name)
+            display_df.index.name = str(display_df.index.name).upper()
             
-        # ပြင်ဆင်ပြီးသား ဇယားကို မူလ st.dataframe ဆီ ပို့ပေးပါမယ်
-        return _original_dataframe(display_df, *args, **kwargs)
+        # ဇယားမှာ ရှေ့ဆုံးက 0,1,2 (Index) တွေ ဖျောက်ထားချင်ရင် ဖျောက်ပေးရန်
+        show_index = not kwargs.get("hide_index", False)
+        
+        # DataFrame ကို HTML ဇယားအဖြစ် ပြောင်းခြင်း
+        html_table = display_df.to_html(index=show_index, classes="g-sheet-pivot", escape=False)
+        
+        # Google Sheets Pivot Table ပုံစံ CSS Style
+        custom_css = """
+        <style>
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .g-sheet-pivot {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            background-color: white;
+        }
+        .g-sheet-pivot th {
+            background-color: #E8F0FE; /* Pivot Header အရောင် (အပြာနုရောင်) */
+            color: #1A73E8; /* စာလုံးအရောင် (အပြာရင့်/အမဲ) */
+            font-weight: 700;
+            padding: 10px 12px;
+            border: 1px solid #bdc1c6;
+            text-align: left;
+        }
+        .g-sheet-pivot td {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            color: #202124;
+        }
+        .g-sheet-pivot tbody tr:hover td {
+            background-color: #F1F3F4; /* Mouse တင်လျှင် မီးခိုးနုရောင် ပြောင်းရန် */
+        }
+        </style>
+        """
+        
+        # Streamlit တွင် HTML အဖြစ် ပြသခြင်း
+        st.markdown(f"{custom_css}<div class='table-wrapper'>{html_table}</div>", unsafe_allow_html=True)
+        return
     
-    # DataFrame မဟုတ်ရင် ပုံမှန်အတိုင်း အလုပ်လုပ်ပါမယ်
+    # DataFrame မဟုတ်ပါက မူလအတိုင်း ဆက်အလုပ်လုပ်ရန်
     return _original_dataframe(data, *args, **kwargs)
 
-# Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို custom function ဖြင့် အစားထိုးခြင်း
-st.dataframe = _custom_bold_dataframe
+# Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို အစားထိုးခြင်း
+st.dataframe = _custom_styled_html_dataframe
 # =========================================================================
 
 @st.cache_resource
