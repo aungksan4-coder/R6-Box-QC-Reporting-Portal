@@ -9,22 +9,38 @@ import streamlit as st
 from supabase import create_client
 
 # =========================================================================
-# --- GLOBAL DATAFRAME OVERRIDE (Table Title များကို အလိုအလျောက် UPPERCASE ပြောင်းရန်) ---
+# --- GLOBAL DATAFRAME OVERRIDE (Table Title များကို Bold & Dark Black ပြောင်းရန်) ---
 # =========================================================================
 _original_dataframe = st.dataframe
 
-def _custom_uppercase_dataframe(data, *args, **kwargs):
+# သာမန်စာလုံးများကို Bold စာလုံးများ (Unicode) အဖြစ်ပြောင်းပေးမည့် Function
+def to_bold_unicode(text):
+    if pd.isna(text):
+        return ""
+    res = []
+    for c in str(text):
+        if 'A' <= c <= 'Z':
+            res.append(chr(ord(c) - ord('A') + 0x1D5D4))
+        elif 'a' <= c <= 'z':
+            res.append(chr(ord(c) - ord('a') + 0x1D5EE))
+        elif '0' <= c <= '9':
+            res.append(chr(ord(c) - ord('0') + 0x1D7EC))
+        else:
+            res.append(c)
+    return "".join(res)
+
+def _custom_bold_dataframe(data, *args, **kwargs):
     # Data က DataFrame ဖြစ်နေမှသာ အလုပ်လုပ်ပါမယ်
     if isinstance(data, pd.DataFrame):
-        # မူရင်း Data ကိုမထိခိုက်အောင် Copy ကူးပါမယ်
+        # မူရင်း Data ကိုမထိခိုက်အောင် Copy ကူးပါမယ် (တွက်ချက်မှုတွေ မလွဲအောင်လို့ပါ)
         display_df = data.copy()
         
-        # Column ခေါင်းစဉ်အားလုံးကို စာလုံးအကြီး (UPPERCASE) ပြောင်းမယ်
-        display_df.columns = [str(col).upper() for col in display_df.columns]
+        # Column ခေါင်းစဉ်အားလုံးကို Bold Unicode စာလုံးများအဖြစ် ပြောင်းမယ်
+        display_df.columns = [to_bold_unicode(col) for col in display_df.columns]
         
-        # ဘေးဘက်က Index ခေါင်းစဉ် (ဥပမာ - Team, Region) ကိုပါ စာလုံးအကြီး ပြောင်းမယ်
+        # ဘေးဘက်က Index ခေါင်းစဉ် (ဥပမာ - Team, Region) ကိုပါ Bold ပြောင်းမယ်
         if display_df.index.name:
-            display_df.index.name = str(display_df.index.name).upper()
+            display_df.index.name = to_bold_unicode(display_df.index.name)
             
         # ပြင်ဆင်ပြီးသား ဇယားကို မူလ st.dataframe ဆီ ပို့ပေးပါမယ်
         return _original_dataframe(display_df, *args, **kwargs)
@@ -33,7 +49,7 @@ def _custom_uppercase_dataframe(data, *args, **kwargs):
     return _original_dataframe(data, *args, **kwargs)
 
 # Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို custom function ဖြင့် အစားထိုးခြင်း
-st.dataframe = _custom_uppercase_dataframe
+st.dataframe = _custom_bold_dataframe
 # =========================================================================
 
 @st.cache_resource
