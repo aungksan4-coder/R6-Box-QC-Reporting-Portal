@@ -9,28 +9,31 @@ import streamlit as st
 from supabase import create_client
 
 # =========================================================================
-# --- GLOBAL DATAFRAME STYLING (Table Title များကို Bold ဖြစ်စေရန်) ---
+# --- GLOBAL DATAFRAME OVERRIDE (Table Title များကို အလိုအလျောက် UPPERCASE ပြောင်းရန်) ---
 # =========================================================================
 _original_dataframe = st.dataframe
 
-def _custom_styled_dataframe(data, *args, **kwargs):
-    # Data က DataFrame ဖြစ်နေမှသာ Style ချိန်းပါမယ်
+def _custom_uppercase_dataframe(data, *args, **kwargs):
+    # Data က DataFrame ဖြစ်နေမှသာ အလုပ်လုပ်ပါမယ်
     if isinstance(data, pd.DataFrame):
-        # Header (Title) တွေကို Bold ဖြစ်စေဖို့ Pandas Styler ကို သုံးခြင်း
-        styles = [
-            dict(selector="th", props=[
-                ("font-size", "15px"),      # စာလုံးအရွယ်အစား နည်းနည်း ကြီးရန်
-                ("font-weight", "900"),     # စာလုံး အထူ (Bold) ဖြစ်ရန်
-                ("text-transform", "uppercase") # (Optional) စာလုံးကြီး (Capital) ပြောင်းချင်ရင် ထားခဲ့ပါ
-            ])
-        ]
-        # Styler object အဖြစ်ပြောင်းပြီးမှ မူလ st.dataframe ဆီပို့ပေးပါမယ်
-        data = data.style.set_table_styles(styles)
+        # မူရင်း Data ကိုမထိခိုက်အောင် Copy ကူးပါမယ်
+        display_df = data.copy()
+        
+        # Column ခေါင်းစဉ်အားလုံးကို စာလုံးအကြီး (UPPERCASE) ပြောင်းမယ်
+        display_df.columns = [str(col).upper() for col in display_df.columns]
+        
+        # ဘေးဘက်က Index ခေါင်းစဉ် (ဥပမာ - Team, Region) ကိုပါ စာလုံးအကြီး ပြောင်းမယ်
+        if display_df.index.name:
+            display_df.index.name = str(display_df.index.name).upper()
+            
+        # ပြင်ဆင်ပြီးသား ဇယားကို မူလ st.dataframe ဆီ ပို့ပေးပါမယ်
+        return _original_dataframe(display_df, *args, **kwargs)
     
+    # DataFrame မဟုတ်ရင် ပုံမှန်အတိုင်း အလုပ်လုပ်ပါမယ်
     return _original_dataframe(data, *args, **kwargs)
 
-# Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို custom function ဖြင့် အစားထိုးခြင်း (Monkey Patch)
-st.dataframe = _custom_styled_dataframe
+# Portal တစ်ခုလုံးရှိ st.dataframe အားလုံးကို custom function ဖြင့် အစားထိုးခြင်း
+st.dataframe = _custom_uppercase_dataframe
 # =========================================================================
 
 @st.cache_resource
