@@ -1111,18 +1111,29 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 import time
 
 if st.session_state.get("scroll_to_top", False):
-    # (၂) အပေါ်မှာလုပ်ထားခဲ့တဲ့ 'top-of-page' ဆိုတဲ့ မှတ်တိုင်ဆီကို အလိုအလျောက် ပြန်ဆွဲတင်ခိုင်းပါမည်
     js_scroll = f"""
     <script>
-        function scrollToTop() {{
-            var anchor = window.parent.document.getElementById('top-of-page');
-            if (anchor) {{
-                anchor.scrollIntoView({{behavior: 'smooth', block: 'start'}});
-            }}
+        function forceScrollUp() {{
+            // လက်ရှိ မျက်နှာပြင်ရော၊ ပင်မ မျက်နှာပြင်မှာပါ မှတ်တိုင်နဲ့ Scroll Container တွေကို လိုက်ရှာပါမည်
+            let docs = [window.document, window.parent.document];
+            
+            docs.forEach(function(doc) {{
+                if(doc) {{
+                    // ၁။ မှတ်တိုင်ကို ရှာပြီး ဆွဲတင်ခြင်း
+                    let anchor = doc.getElementById('top-of-page');
+                    if (anchor) anchor.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+                    
+                    // ၂။ Streamlit ရဲ့ Scroll Container တွေကို တိုက်ရိုက် ဆွဲတင်ခြင်း
+                    let main1 = doc.querySelector('.main');
+                    let main2 = doc.querySelector('[data-testid="stAppViewContainer"]');
+                    if (main1) main1.scrollTop = 0;
+                    if (main2) main2.scrollTop = 0;
+                }}
+            }});
         }}
-        // Browser က ဇယားတွေဆွဲနေတာနဲ့ မတိုက်မိအောင် အချိန်နည်းနည်းစောင့်ပြီးမှ တင်ပါမည်
-        setTimeout(scrollToTop, 100);
-        setTimeout(scrollToTop, 600);
+        // သေချာစေရန် အချိန်ခဏစောင့်၍ နှစ်ကြိမ် ခေါ်ပါမည်
+        setTimeout(forceScrollUp, 100);
+        setTimeout(forceScrollUp, 500);
     </script>
     <div style='display:none;'>{time.time()}</div>
     """
