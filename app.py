@@ -171,37 +171,9 @@ def save_box_state():
 
 st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 
-# -------- အသစ်ထည့်ရမည့် Auto Scroll to Top အပိုင်း (ဒီနေရာကနေစကူးပြီး အစားထိုးပါ) --------
-import time
-
-if "scroll_to_top" not in st.session_state:
-    st.session_state.scroll_to_top = False
-
-# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function
+# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function အသစ်
 def trigger_scroll():
     st.session_state.scroll_to_top = True
-
-if st.session_state.scroll_to_top:
-    # DOM (ဇယား/ပုံများ) အားလုံး Load လုပ်ပြီးမှ Scroll တင်ရန် Timeout လေးများ ခံထားပါမည်
-    js_scroll = f"""
-    <script>
-        function goTop() {{
-            var appContainer = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
-            var mainContainer = window.parent.document.querySelector('.main');
-            if (appContainer) appContainer.scrollTop = 0;
-            if (mainContainer) mainContainer.scrollTop = 0;
-            window.parent.scrollTo(0, 0);
-        }}
-        // Chart တွေ Load လုပ်တာကို စောင့်ပြီးမှ သေချာအောင် အကြိမ်ကြိမ် Scroll တင်ခိုင်းပါမည်
-        setTimeout(goTop, 100);
-        setTimeout(goTop, 300);
-        setTimeout(goTop, 800);
-    </script>
-    <span style='display:none;'>{time.time()}</span>
-    """
-    st.markdown(js_scroll, unsafe_allow_html=True)
-    st.session_state.scroll_to_top = False
-# ----------------------------------------------------------------------
 
 # Sheet IDs
 KEY_REPORT_SHEET_ID = "1LMyLbXSJOTpZUDCjJp6RrY_6slpEmYnLGH1vPqL-VxY"
@@ -1129,3 +1101,26 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
             except Exception as e:
                 st.error(f"Error loading Box Data Photo Gallery: {e}")
+
+# ==============================================================================
+# AUTO SCROLL TO TOP SCRIPT (ဖိုင်၏ အောက်ဆုံးတွင်သာ ထားပါ)
+# ==============================================================================
+import streamlit.components.v1 as components
+
+if st.session_state.get("scroll_to_top", False):
+    components.html(
+        """
+        <script>
+            // Streamlit ၏ Scroll Container များကို ရှာ၍ အပေါ်ဆုံးသို့ ချက်ချင်းပို့ခြင်း
+            var appContainer = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+            var mainContainer = window.parent.document.querySelector('.main');
+            
+            if (appContainer) appContainer.scrollTop = 0;
+            if (mainContainer) mainContainer.scrollTop = 0;
+        </script>
+        """,
+        height=0, 
+        width=0
+    )
+    # ပြီးသွားလျှင် ပြန်ပိတ်ထားရန်
+    st.session_state.scroll_to_top = False
