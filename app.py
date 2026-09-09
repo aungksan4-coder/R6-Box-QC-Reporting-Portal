@@ -171,7 +171,10 @@ def save_box_state():
 
 st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 
-# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function အသစ်
+# (၁) အပေါ်ဆုံးမှာ မျက်စိနဲ့မမြင်ရတဲ့ မှတ်တိုင် (Anchor) လေး ဖန်တီးထားပါမည်
+st.markdown("<div id='top-of-page'></div>", unsafe_allow_html=True)
+
+# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function (ဒါလေးကတော့ အရင်အတိုင်း ထားထားပေးပါ)
 def trigger_scroll():
     st.session_state.scroll_to_top = True
 
@@ -1108,28 +1111,18 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 import time
 
 if st.session_state.get("scroll_to_top", False):
-    # Javascript ဖြင့် Streamlit ၏ Scroll Container အားလုံးကို ရှာ၍ အပေါ်သို့ ဆွဲတင်မည်
-    # ဇယားများနှင့် ပုံများ အပြည့်အစုံ Load ဖြစ်ရန် အချိန်အနည်းငယ် စောင့်ပြီးမှ တင်ခိုင်းပါမည်
+    # (၂) အပေါ်မှာလုပ်ထားခဲ့တဲ့ 'top-of-page' ဆိုတဲ့ မှတ်တိုင်ဆီကို အလိုအလျောက် ပြန်ဆွဲတင်ခိုင်းပါမည်
     js_scroll = f"""
     <script>
-        function forceScrollToTop() {{
-            var containers = [
-                window.parent.document.querySelector('.main'),
-                window.parent.document.querySelector('[data-testid="stAppViewContainer"]'),
-                window.parent.document.querySelector('.stMainBlockContainer'),
-                window.parent.document.documentElement,
-                window.parent.document.body
-            ];
-            for (var i = 0; i < containers.length; i++) {{
-                if (containers[i]) containers[i].scrollTop = 0;
+        function scrollToTop() {{
+            var anchor = window.parent.document.getElementById('top-of-page');
+            if (anchor) {{
+                anchor.scrollIntoView({{behavior: 'smooth', block: 'start'}});
             }}
-            window.parent.scrollTo(0, 0);
         }}
-        
-        // ချက်ချင်းတစ်ကြိမ်၊ စက္ကန့်ပိုင်းအကြာတွင် နောက်ထပ် အကြိမ်များ ထပ်ခေါ်၍ သေချာစေရန်
-        setTimeout(forceScrollToTop, 50);
-        setTimeout(forceScrollToTop, 250);
-        setTimeout(forceScrollToTop, 500);
+        // Browser က ဇယားတွေဆွဲနေတာနဲ့ မတိုက်မိအောင် အချိန်နည်းနည်းစောင့်ပြီးမှ တင်ပါမည်
+        setTimeout(scrollToTop, 100);
+        setTimeout(scrollToTop, 600);
     </script>
     <div style='display:none;'>{time.time()}</div>
     """
