@@ -499,8 +499,7 @@ selected_page = st.sidebar.selectbox(
     "Select Page",
     ["Key Report Data", "MSOps6 & FiberOps6 Box Data"],
     index=0 if default_page == "Key Report Data" else 1,
-    key="page_navigation_selectbox"
-)
+    key="page_navigation_selectbox")
 st.query_params["page"] = selected_page
 
 st.sidebar.markdown("---")
