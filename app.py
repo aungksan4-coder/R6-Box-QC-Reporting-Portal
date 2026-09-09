@@ -169,9 +169,7 @@ def save_box_state():
     st.session_state.box_store = state_data
     save_gallery_store(state_data)
 
-st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
-
-# -------- အသစ်ထည့်ရမည့် Auto Scroll to Top အပိုင်း (ဒီနေရာကနေစကူးပါ) --------
+# -------- အသစ်ထည့်ရမည့် Auto Scroll to Top အပိုင်း (ဒီနေရာကနေစကူးပြီး အစားထိုးပါ) --------
 import time
 
 if "scroll_to_top" not in st.session_state:
@@ -182,14 +180,22 @@ def trigger_scroll():
     st.session_state.scroll_to_top = True
 
 if st.session_state.scroll_to_top:
-    # မျက်နှာပြင်ကို အပေါ်ဆုံးရောက်အောင် JavaScript ဖြင့် ဆွဲတင်ခြင်း
+    # DOM (ဇယား/ပုံများ) အားလုံး Load လုပ်ပြီးမှ Scroll တင်ရန် Timeout လေးများ ခံထားပါမည်
     js_scroll = f"""
     <script>
-        var main = window.parent.document.querySelector('.main') || window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
-        if (main) main.scrollTop = 0;
-        window.parent.scrollTo(0,0);
+        function goTop() {{
+            var appContainer = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+            var mainContainer = window.parent.document.querySelector('.main');
+            if (appContainer) appContainer.scrollTop = 0;
+            if (mainContainer) mainContainer.scrollTop = 0;
+            window.parent.scrollTo(0, 0);
+        }}
+        // Chart တွေ Load လုပ်တာကို စောင့်ပြီးမှ သေချာအောင် အကြိမ်ကြိမ် Scroll တင်ခိုင်းပါမည်
+        setTimeout(goTop, 100);
+        setTimeout(goTop, 300);
+        setTimeout(goTop, 800);
     </script>
-    <!-- force render: {time.time()} -->
+    <span style='display:none;'>{time.time()}</span>
     """
     st.markdown(js_scroll, unsafe_allow_html=True)
     st.session_state.scroll_to_top = False
