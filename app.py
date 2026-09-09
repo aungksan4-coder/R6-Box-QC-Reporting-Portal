@@ -171,12 +171,8 @@ def save_box_state():
 
 st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 
-# (၁) အပေါ်ဆုံးမှာ မျက်စိနဲ့မမြင်ရတဲ့ မှတ်တိုင် (Anchor) လေး ဖန်တီးထားပါမည်
+# အပေါ်ဆုံးကို ပြန်တက်ရန်အတွက် မျက်စိဖြင့်မမြင်ရသော မှတ်တိုင်လေးတစ်ခု ဖန်တီးခြင်း
 st.markdown("<div id='top-of-page'></div>", unsafe_allow_html=True)
-
-# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function (ဒါလေးကတော့ အရင်အတိုင်း ထားထားပေးပါ)
-def trigger_scroll():
-    st.session_state.scroll_to_top = True
 
 # Sheet IDs
 KEY_REPORT_SHEET_ID = "1LMyLbXSJOTpZUDCjJp6RrY_6slpEmYnLGH1vPqL-VxY"
@@ -1106,36 +1102,25 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 st.error(f"Error loading Box Data Photo Gallery: {e}")
 
 # ==============================================================================
-# AUTO SCROLL TO TOP SCRIPT (ဖိုင်၏ အောက်ဆုံးတွင်သာ ထားပါ)
+# BACK TO TOP BUTTON (ဖိုင်၏ အောက်ဆုံးတွင်သာ ထားပါ)
 # ==============================================================================
-import time
+st.markdown("<br><br>", unsafe_allow_html=True) # အောက်ခြေတွင် Space အနည်းငယ်ခြားရန်
 
-if st.session_state.get("scroll_to_top", False):
-    js_scroll = f"""
-    <script>
-        function forceScrollUp() {{
-            // လက်ရှိ မျက်နှာပြင်ရော၊ ပင်မ မျက်နှာပြင်မှာပါ မှတ်တိုင်နဲ့ Scroll Container တွေကို လိုက်ရှာပါမည်
-            let docs = [window.document, window.parent.document];
-            
-            docs.forEach(function(doc) {{
-                if(doc) {{
-                    // ၁။ မှတ်တိုင်ကို ရှာပြီး ဆွဲတင်ခြင်း
-                    let anchor = doc.getElementById('top-of-page');
-                    if (anchor) anchor.scrollIntoView({{behavior: 'smooth', block: 'start'}});
-                    
-                    // ၂။ Streamlit ရဲ့ Scroll Container တွေကို တိုက်ရိုက် ဆွဲတင်ခြင်း
-                    let main1 = doc.querySelector('.main');
-                    let main2 = doc.querySelector('[data-testid="stAppViewContainer"]');
-                    if (main1) main1.scrollTop = 0;
-                    if (main2) main2.scrollTop = 0;
-                }}
-            }});
-        }}
-        // သေချာစေရန် အချိန်ခဏစောင့်၍ နှစ်ကြိမ် ခေါ်ပါမည်
-        setTimeout(forceScrollUp, 100);
-        setTimeout(forceScrollUp, 500);
-    </script>
-    <div style='display:none;'>{time.time()}</div>
-    """
-    st.markdown(js_scroll, unsafe_allow_html=True)
-    st.session_state.scroll_to_top = False
+back_to_top_html = """
+<div style="text-align: right; padding-right: 20px; margin-bottom: 20px;">
+    <a href="#top-of-page" style="
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #E8F0FE;
+        color: #1A73E8;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: 0.3s;
+    ">
+        ⬆️ အပေါ်သို့ ပြန်တက်ရန် (Back to Top)
+    </a>
+</div>
+"""
+st.markdown(back_to_top_html, unsafe_allow_html=True)
