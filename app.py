@@ -499,8 +499,7 @@ selected_page = st.sidebar.selectbox(
     "Select Page",
     ["Key Report Data", "MSOps6 & FiberOps6 Box Data"],
     index=0 if default_page == "Key Report Data" else 1,
-    key="page_navigation_selectbox",
-    on_change=trigger_scroll  # <--- ဒီစာကြောင်းလေး ထပ်တိုးလိုက်ပါ
+    key="page_navigation_selectbox"
 )
 st.query_params["page"] = selected_page
 
@@ -512,9 +511,7 @@ st.sidebar.markdown("---")
 if selected_page == "Key Report Data":
     category = st.sidebar.radio(
         "Select View Category", 
-        ["Key QC", "Box QC", "Cross Team QC"],
-        on_change=trigger_scroll  # <--- ဒီစာကြောင်းလေး ထပ်တိုးလိုက်ပါ
-    )
+        ["Key QC", "Box QC", "Cross Team QC"])
     st.sidebar.markdown("---")
 
     st.sidebar.header("📊 Persistent Sorting")
@@ -769,9 +766,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             "Box Summary",
             "Bracket Summary",
             "📷 Photo for Box Fixed & Issues"
-        ],
-        on_change=trigger_scroll  # <--- ဒီစာကြောင်းလေး ထပ်တိုးလိုက်ပါ
-    )
+        ])
     st.sidebar.markdown("---")
 
     # --- VIEW 1: COMBINED BOX SUMMARY ---
