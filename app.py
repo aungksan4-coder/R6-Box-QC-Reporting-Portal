@@ -1105,22 +1105,33 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 # ==============================================================================
 # AUTO SCROLL TO TOP SCRIPT (ဖိုင်၏ အောက်ဆုံးတွင်သာ ထားပါ)
 # ==============================================================================
-import streamlit.components.v1 as components
+import time
 
 if st.session_state.get("scroll_to_top", False):
-    components.html(
-        """
-        <script>
-            // Streamlit ၏ Scroll Container များကို ရှာ၍ အပေါ်ဆုံးသို့ ချက်ချင်းပို့ခြင်း
-            var appContainer = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
-            var mainContainer = window.parent.document.querySelector('.main');
-            
-            if (appContainer) appContainer.scrollTop = 0;
-            if (mainContainer) mainContainer.scrollTop = 0;
-        </script>
-        """,
-        height=0, 
-        width=0
-    )
-    # ပြီးသွားလျှင် ပြန်ပိတ်ထားရန်
+    # Javascript ဖြင့် Streamlit ၏ Scroll Container အားလုံးကို ရှာ၍ အပေါ်သို့ ဆွဲတင်မည်
+    # ဇယားများနှင့် ပုံများ အပြည့်အစုံ Load ဖြစ်ရန် အချိန်အနည်းငယ် စောင့်ပြီးမှ တင်ခိုင်းပါမည်
+    js_scroll = f"""
+    <script>
+        function forceScrollToTop() {{
+            var containers = [
+                window.parent.document.querySelector('.main'),
+                window.parent.document.querySelector('[data-testid="stAppViewContainer"]'),
+                window.parent.document.querySelector('.stMainBlockContainer'),
+                window.parent.document.documentElement,
+                window.parent.document.body
+            ];
+            for (var i = 0; i < containers.length; i++) {{
+                if (containers[i]) containers[i].scrollTop = 0;
+            }}
+            window.parent.scrollTo(0, 0);
+        }}
+        
+        // ချက်ချင်းတစ်ကြိမ်၊ စက္ကန့်ပိုင်းအကြာတွင် နောက်ထပ် အကြိမ်များ ထပ်ခေါ်၍ သေချာစေရန်
+        setTimeout(forceScrollToTop, 50);
+        setTimeout(forceScrollToTop, 250);
+        setTimeout(forceScrollToTop, 500);
+    </script>
+    <div style='display:none;'>{time.time()}</div>
+    """
+    st.markdown(js_scroll, unsafe_allow_html=True)
     st.session_state.scroll_to_top = False
