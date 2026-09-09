@@ -171,6 +171,30 @@ def save_box_state():
 
 st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 
+# -------- အသစ်ထည့်ရမည့် Auto Scroll to Top အပိုင်း (ဒီနေရာကနေစကူးပါ) --------
+import time
+
+if "scroll_to_top" not in st.session_state:
+    st.session_state.scroll_to_top = False
+
+# Tab ပြောင်းတိုင်း ခေါ်သုံးမည့် Function
+def trigger_scroll():
+    st.session_state.scroll_to_top = True
+
+if st.session_state.scroll_to_top:
+    # မျက်နှာပြင်ကို အပေါ်ဆုံးရောက်အောင် JavaScript ဖြင့် ဆွဲတင်ခြင်း
+    js_scroll = f"""
+    <script>
+        var main = window.parent.document.querySelector('.main') || window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+        if (main) main.scrollTop = 0;
+        window.parent.scrollTo(0,0);
+    </script>
+    <!-- force render: {time.time()} -->
+    """
+    st.markdown(js_scroll, unsafe_allow_html=True)
+    st.session_state.scroll_to_top = False
+# ----------------------------------------------------------------------
+
 # Sheet IDs
 KEY_REPORT_SHEET_ID = "1LMyLbXSJOTpZUDCjJp6RrY_6slpEmYnLGH1vPqL-VxY"
 BOX_DATA_SHEET_ID = "1CIQgVNrAzm-WiuDPqcUxH59eSq5Oq15_qyts2fcX6A0"
