@@ -17,13 +17,23 @@ def _custom_styled_html_dataframe(data, *args, **kwargs):
     if isinstance(data, pd.DataFrame):
         display_df = data.copy()
         
-        # (၁) Pandas Pivot ရဲ့ Index ခေါင်းစဉ် (ဥပမာ REGION) အောက်ရောက်နေတာကို ပြင်ရန်
-        # Index ကို သာမန် Column အဖြစ် ပြောင်းလိုက်ခြင်းဖြင့် ခေါင်းစဉ်အားလုံး တစ်တန်းတည်း ဖြစ်သွားစေပါမယ်
+        # (၁) Index ခေါင်းစဉ် (ဥပမာ REGION) အောက်ရောက်နေတာကို ပြင်ရန်
         if not isinstance(display_df.index, pd.RangeIndex):
+            # Data တွက်ချက်မှုကြောင့် Index Name ပျောက်သွားခဲ့ရင် 'TEAM' ဟု အမည်ပေးမည်
+            if display_df.index.name is None:
+                display_df.index.name = "TEAM"
             display_df = display_df.reset_index()
         
         # (၂) Column ခေါင်းစဉ်များကို စာလုံးအကြီး (UPPERCASE) ပြောင်းရန်
-        display_df.columns = [str(col).upper() for col in display_df.columns]
+        new_columns = []
+        for col in display_df.columns:
+            col_str = str(col).upper()
+            # Pandas မှ အလိုအလျောက် ပေးသော 'INDEX' အမည်ဖြစ်နေပါက 'TEAM' သို့ ပြောင်းရန်
+            if col_str == "INDEX":
+                new_columns.append("TEAM")
+            else:
+                new_columns.append(col_str)
+        display_df.columns = new_columns
             
         # (၃) 0,1,2 အညွှန်းနံပါတ်များ မပေါ်စေရန် index=False ဖြင့် HTML ပြောင်းပါမယ်
         html_table = display_df.to_html(index=False, classes="g-sheet-pivot", escape=False)
