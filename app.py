@@ -1113,7 +1113,7 @@ back_to_top_html = """
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         transition: 0.3s;
     ">
-        ⬆️ အပေါ်သို့ ပြန်တက်ရန် (Back to Top)
+        ⬆️Back to Top
     </a>
 </div>
 """
