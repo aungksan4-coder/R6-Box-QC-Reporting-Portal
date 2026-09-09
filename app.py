@@ -169,6 +169,8 @@ def save_box_state():
     st.session_state.box_store = state_data
     save_gallery_store(state_data)
 
+st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
+
 # -------- အသစ်ထည့်ရမည့် Auto Scroll to Top အပိုင်း (ဒီနေရာကနေစကူးပြီး အစားထိုးပါ) --------
 import time
 
