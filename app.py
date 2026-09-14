@@ -766,7 +766,7 @@ if selected_page == "Key Report Data":
             c1, c2 = st.columns(2)
             with c1: st.dataframe(mdy_cnt, use_container_width=True)
             st.session_state.ppt_export_dict["Regional Key QC - Count"] = reg_cnt
-            st.session_state.ppt_export_dict["Regional Key QC - Percent"] = reg_pct
+                        st.session_state.ppt_export_dict["Regional Key QC - Percent"] = reg_pct
             with c2: st.dataframe(mdy_pct, use_container_width=True)
 
             st.markdown("---")
