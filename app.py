@@ -427,7 +427,7 @@ def render_city_status_pivot_and_chart(tab_name, city_col_idx=0, site_code_col_i
         fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
         if fig:
             st.plotly_chart(fig, use_container_width=True)
-                        st.session_state.ppt_export_dict[f"{tab_name} - Chart"] = fig
+            st.session_state.ppt_export_dict[f"{tab_name} - Chart"] = fig
 
     except Exception as e:
         st.error(f"Error loading '{tab_name}': {e}")
