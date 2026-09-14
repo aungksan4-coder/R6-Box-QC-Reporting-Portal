@@ -422,10 +422,12 @@ def render_city_status_pivot_and_chart(tab_name, city_col_idx=0, site_code_col_i
         final_table = pd.concat([pivot_df, gt_row.to_frame().T])
 
         st.dataframe(final_table, use_container_width=True)
+                st.session_state.ppt_export_dict[f"{tab_name} - Table"] = final_table
 
         fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
         if fig:
             st.plotly_chart(fig, use_container_width=True)
+                        st.session_state.ppt_export_dict[f"{tab_name} - Chart"] = fig
 
     except Exception as e:
         st.error(f"Error loading '{tab_name}': {e}")
@@ -483,10 +485,12 @@ def render_bracket_pivot_and_chart(df_bracket, rootcause_val):
     final_table = pd.concat([pivot_df, gt_row.to_frame().T])
 
     st.dataframe(final_table, use_container_width=True)
+        st.session_state.ppt_export_dict[f"{rootcause_val} - Table"] = final_table
 
     fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
     if fig:
         st.plotly_chart(fig, use_container_width=True)
+                st.session_state.ppt_export_dict[f"{rootcause_val} - Chart"] = fig
 
 # --- MAIN NAVIGATION ---
 st.sidebar.title("☰ Navigation Menu")
@@ -510,65 +514,154 @@ st.query_params["page"] = selected_page
 # ==============================================================================
 def generate_ppt_from_state():
     from pptx import Presentation
-    from pptx.util import Inches
+    from pptx.util import Inches, Pt
     import io
     import pandas as pd
     import plotly.graph_objects as go
     import requests
-    
+
     prs = Presentation()
-    # Title Slide
-    slide = prs.slides.add_slide(prs.slide_layouts[0])
-    slide.shapes.title.text = "Operations Reporting Portal"
-    slide.placeholders[1].text = "Filtered Data Export"
-    
-    # (၁) သိမ်းထားသော Table နှင့် Chart များကို ဆွဲထုတ်ခြင်း
-    for title, item in st.session_state.ppt_export_dict.items():
-        if isinstance(item, pd.DataFrame):
-            # Table များကို Slide ထဲထည့်ခြင်း
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = title
-            rows, cols = item.shape
-            max_rows = min(rows + 1, 16) # PPT တွင်ဆံ့စေရန် အများဆုံး Row 15 သာယူမည်
+    # ပုံစံတူဖြစ်စေရန် Widescreen (16:9) အချိုးပြောင်းခြင်း
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+
+    # Table ရေးဆွဲမည့် Helper Function
+    def add_table(slide, df, left, top, width):
+        if not isinstance(df.index, pd.RangeIndex):
+            if df.index.name is None: df.index.name = "TEAM"
+            df = df.reset_index()
+        rows, cols = df.shape
+        max_rows = min(rows + 1, 15) # PPT တွင်ဆံ့စေရန် Row အများဆုံး ၁၅ ခုသာ
+        try:
+            table = slide.shapes.add_table(max_rows, cols, left, top, width, Inches(0.3 * max_rows)).table
+            for i, col_name in enumerate(df.columns):
+                table.cell(0, i).text = str(col_name).upper()
+                table.cell(0, i).text_frame.paragraphs[0].font.size = Pt(11)
+                table.cell(0, i).text_frame.paragraphs[0].font.bold = True
+            for r in range(max_rows - 1):
+                for c in range(cols):
+                    table.cell(r + 1, c).text = str(df.iloc[r, c])
+                    table.cell(r + 1, c).text_frame.paragraphs[0].font.size = Pt(10)
+        except Exception:
+            pass
+
+    # Chart ရေးဆွဲမည့် Helper Function
+    def add_chart(slide, fig, left, top, width, height):
+        try:
+            img_bytes = fig.to_image(format="png", width=int(width.inches*100), height=int(height.inches*100))
+            slide.shapes.add_picture(io.BytesIO(img_bytes), left, top, width=width, height=height)
+        except Exception:
+            pass
             
-            try:
-                table_shape = slide.shapes.add_table(max_rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(0.3 * max_rows)).table
-                for i, col_name in enumerate(item.columns):
-                    table_shape.cell(0, i).text = str(col_name)
-                for r in range(max_rows - 1):
-                    for c in range(cols):
-                        table_shape.cell(r + 1, c).text = str(item.iloc[r, c])
-            except Exception:
-                pass
+    # Title ရေးဆွဲမည့် Helper Function
+    def add_title(slide, text, left=Inches(0.5), top=Inches(0.2)):
+        tx = slide.shapes.add_textbox(left, top, Inches(12), Inches(0.5))
+        tx.text_frame.text = text
+        tx.text_frame.paragraphs[0].font.size = Pt(18)
+        tx.text_frame.paragraphs[0].font.bold = True
+
+    data = st.session_state.get("ppt_export_dict", {})
+    
+    # --- ၁။ TITLE SLIDE ---
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
+    slide.shapes.title.text = "Operations Reporting Portal Export"
+    slide.placeholders[1].text = "Filtered Data Report"
+
+    # --- ၂။ KEY QC SLIDE (Slide တစ်ခုတည်းတွင် Table ၄ ခုတွဲရန်) ---
+    if any("Key QC" in k for k in data.keys()):
+        slide = prs.slides.add_slide(prs.slide_layouts[6]) # Blank Slide ယူမည်
+        add_title(slide, "Key Report Data")
+        if "MDY Key QC - Count" in data:
+            add_title(slide, "MDY Key QC", top=Inches(0.8))
+            add_table(slide, data["MDY Key QC - Count"], Inches(0.5), Inches(1.3), Inches(5.8))
+        if "MDY Key QC - Percentage" in data:
+            add_table(slide, data["MDY Key QC - Percentage"], Inches(6.8), Inches(1.3), Inches(5.8))
+        if "Regional Key QC - Count" in data:
+            add_title(slide, "Regional Key QC (MEO,NPW,PAN,TIS)", top=Inches(4.0))
+            add_table(slide, data["Regional Key QC - Count"], Inches(0.5), Inches(4.5), Inches(5.8))
+        if "Regional Key QC - Percent" in data:
+            add_table(slide, data["Regional Key QC - Percent"], Inches(6.8), Inches(4.5), Inches(5.8))
+
+    # --- ၃။ BOX SUMMARY & BRACKET (ဘယ်/ညာ ပုံစံများ) ---
+    pairs = [
+        ("Need To Clean Box Inside", "Need to maintain Box"),
+        ("Need To Install Pencil Kit Holder", "Need To Install Cable Holder"),
+        ("Need To Fix Pencil Kit Holder", "Need To Fix Cable Holder"),
+        ("Bracket full", "Bracket lost"),
+        ("Bracket damage", "Need to install Bracket")
+    ]
+    for left_key, right_key in pairs:
+        if f"{left_key} - Table" in data or f"{right_key} - Table" in data:
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            
+            # ဘယ်ဘက်ခြမ်း
+            if f"{left_key} - Table" in data:
+                add_title(slide, left_key, left=Inches(0.5), top=Inches(0.3))
+                add_table(slide, data[f"{left_key} - Table"], Inches(0.5), Inches(0.8), Inches(5.8))
+            if f"{left_key} - Chart" in data:
+                add_chart(slide, data[f"{left_key} - Chart"], Inches(0.5), Inches(3.5), Inches(5.8), Inches(3.5))
                 
-        elif isinstance(item, go.Figure):
-            # Chart များကို ပုံအဖြစ်ပြောင်းပြီး Slide ထဲထည့်ခြင်း
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-            slide.shapes.title.text = title
-            try:
-                img_bytes = item.to_image(format="png", width=900, height=500)
-                slide.shapes.add_picture(io.BytesIO(img_bytes), Inches(0.5), Inches(1.5), width=Inches(9))
-            except Exception as e:
-                slide.shapes.title.text = f"{title} (Chart Error: Ensure 'kaleido' is installed)"
-                
-    # (၂) Photo များကို ဆွဲထုတ်ခြင်း (Box Gallery Overrides မှ)
+            # ညာဘက်ခြမ်း
+            if f"{right_key} - Table" in data:
+                add_title(slide, right_key, left=Inches(6.8), top=Inches(0.3))
+                add_table(slide, data[f"{right_key} - Table"], Inches(6.8), Inches(0.8), Inches(5.8))
+            if f"{right_key} - Chart" in data:
+                add_chart(slide, data[f"{right_key} - Chart"], Inches(6.8), Inches(3.5), Inches(5.8), Inches(3.5))
+
+    # --- ၄။ WEEKLY FIXED & BACKLOG (အပေါ်/အောက် အပြည့်ပုံစံများ) ---
+    for w_key in ["Box Issues Weekly Fixed", "Box Issues Weekly Backlog"]:
+        if f"{w_key} - Table" in data:
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            add_title(slide, w_key)
+            add_table(slide, data[f"{w_key} - Table"], Inches(0.5), Inches(0.8), Inches(12.3))
+            if f"{w_key} - Chart" in data:
+                add_chart(slide, data[f"{w_key} - Chart"], Inches(0.5), Inches(3.2), Inches(12.3), Inches(4.0))
+
+    # --- ၅။ PHOTO GALLERY SLIDES (ဓာတ်ပုံများ) ---
     if "box_gallery_overrides" in st.session_state:
         for key, card_data in st.session_state.box_gallery_overrides.items():
             img1_url, img2_url = card_data.get("img1"), card_data.get("img2")
             if img1_url or img2_url:
-                slide = prs.slides.add_slide(prs.slide_layouts[5])
-                slide.shapes.title.text = f"Box ID: {card_data.get('box_id', 'Unknown')} - {card_data.get('action', '')}"
+                slide = prs.slides.add_slide(prs.slide_layouts[6])
+                
+                # အချက်အလက်စာသားများ ထည့်ရန်
+                info_text = (
+                    f"Date: {card_data.get('date_hdr', '')}\n"
+                    f"Ticket: {card_data.get('tkt_id', '')}\n"
+                    f"Box ID: {card_data.get('box_id', 'Unknown')}\n"
+                    f"Action: {card_data.get('action', '')}\n"
+                    f"Maint: {card_data.get('maint', '')}"
+                )
+                tx = slide.shapes.add_textbox(Inches(0.5), Inches(0.2), Inches(12.3), Inches(1.5))
+                tx.text_frame.text = info_text
+                tx.text_frame.paragraphs[0].font.size = Pt(12)
+
                 try:
                     if img1_url:
                         resp = requests.get(img1_url)
-                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(0.5), Inches(2), width=Inches(4))
+                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(0.5), Inches(2.2), width=Inches(6), height=Inches(4.8))
                     if img2_url:
                         resp = requests.get(img2_url)
-                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(5), Inches(2), width=Inches(4))
+                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(6.8), Inches(2.2), width=Inches(6), height=Inches(4.8))
                 except Exception:
                     pass
-                    
-    # File အဖြစ်ပြောင်းပေးခြင်း
+    
+    # --- ၆။ အခြားကျန်နေခဲ့သော Table/Chart များ (Fallback) ---
+    placed_keys = ["MDY Key QC - Count", "MDY Key QC - Percentage", "Regional Key QC - Count", "Regional Key QC - Percent", 
+                   "Box Issues Weekly Fixed - Table", "Box Issues Weekly Fixed - Chart", 
+                   "Box Issues Weekly Backlog - Table", "Box Issues Weekly Backlog - Chart"]
+    for l, r in pairs: 
+        placed_keys.extend([f"{l} - Table", f"{l} - Chart", f"{r} - Table", f"{r} - Chart"])
+    
+    for title, item in data.items():
+        if title not in placed_keys:
+            slide = prs.slides.add_slide(prs.slide_layouts[5])
+            slide.shapes.title.text = title
+            if isinstance(item, pd.DataFrame):
+                add_table(slide, item, Inches(0.5), Inches(1.5), Inches(12.3))
+            elif isinstance(item, go.Figure):
+                add_chart(slide, item, Inches(0.5), Inches(1.5), Inches(12.3), Inches(5))
+
     ppt_stream = io.BytesIO()
     prs.save(ppt_stream)
     ppt_stream.seek(0)
@@ -672,7 +765,8 @@ if selected_page == "Key Report Data":
 
             c1, c2 = st.columns(2)
             with c1: st.dataframe(mdy_cnt, use_container_width=True)
-            st.session_state.ppt_export_dict["MDY Key QC - Count"] = mdy_cnt
+            st.session_state.ppt_export_dict["Regional Key QC - Count"] = reg_cnt
+                        st.session_state.ppt_export_dict["Regional Key QC - Percent"] = reg_pct
             with c2: st.dataframe(mdy_pct, use_container_width=True)
 
             st.markdown("---")
@@ -748,6 +842,7 @@ if selected_page == "Key Report Data":
                         
                         # ဒီနေရာမှာ hide_index=True လေး ထည့်လိုက်ပါပြီ
                         st.dataframe(sliced, use_container_width=True, hide_index=True)
+                                                st.session_state.ppt_export_dict["Box QC Summary"] = sliced
                     else:
                         # ဒီနေရာမှာလည်း hide_index=True လေး ထည့်လိုက်ပါပြီ
                         st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True, hide_index=True)
@@ -763,6 +858,7 @@ if selected_page == "Key Report Data":
                 st.markdown("**R6 Box Touch Pass/ Fail Result**")
                 cnt_pf, pct_pf = build_count_and_pct_pivots(df_filtered, region_col, final_status_col, box_col, ["Pass", "Fail"])
                 st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
+                                st.session_state.ppt_export_dict[f"Cross Team {reg} Pass/Fail"] = cnt_pf
                 st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
 
             with mid_col2:
