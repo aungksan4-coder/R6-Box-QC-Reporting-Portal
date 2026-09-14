@@ -766,7 +766,7 @@ if selected_page == "Key Report Data":
             c1, c2 = st.columns(2)
             with c1: st.dataframe(mdy_cnt, use_container_width=True)
             st.session_state.ppt_export_dict["Regional Key QC - Count"] = reg_cnt
-                        st.session_state.ppt_export_dict["Regional Key QC - Percent"] = reg_pct
+            st.session_state.ppt_export_dict["Regional Key QC - Percent"] = reg_pct
             with c2: st.dataframe(mdy_pct, use_container_width=True)
 
             st.markdown("---")
@@ -858,7 +858,7 @@ if selected_page == "Key Report Data":
                 st.markdown("**R6 Box Touch Pass/ Fail Result**")
                 cnt_pf, pct_pf = build_count_and_pct_pivots(df_filtered, region_col, final_status_col, box_col, ["Pass", "Fail"])
                 st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
-                                st.session_state.ppt_export_dict[f"Cross Team {reg} Pass/Fail"] = cnt_pf
+                st.session_state.ppt_export_dict[f"Cross Team {reg} Pass/Fail"] = cnt_pf
                 st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
 
             with mid_col2:
