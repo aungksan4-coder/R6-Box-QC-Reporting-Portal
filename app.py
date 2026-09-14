@@ -892,7 +892,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
       # --- VIEW: BOX ISSUE WEEKLY FIXED & BACKLOG ---
     elif view_mode == "Box Issue Weekly Fixed & Backlog":
-        st.markdown("### Box Issue Weekly Fixed & Backlog")
+        st.markdown("### Box Issue Weekly Fixed")
         
         import textwrap
         def wrap_labels(label_str, width=15):
@@ -955,7 +955,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         # ==========================================
         # ၂။ SECOND DATA: Box Issues Weekly Backlog
         # ==========================================
-        st.markdown("### Box Issues Weekly Backlog")
+        st.markdown("### Box Issues Weekly Incomes Backlog")
         
         try:
             # "Weekly Box Issue Incomes BackLog" Tab မှ Data ဆွဲယူခြင်း
