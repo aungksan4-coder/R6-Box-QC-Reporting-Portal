@@ -485,12 +485,12 @@ def render_bracket_pivot_and_chart(df_bracket, rootcause_val):
     final_table = pd.concat([pivot_df, gt_row.to_frame().T])
 
     st.dataframe(final_table, use_container_width=True)
-        st.session_state.ppt_export_dict[f"{rootcause_val} - Table"] = final_table
+    st.session_state.ppt_export_dict[f"{rootcause_val} - Table"] = final_table
 
     fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
     if fig:
         st.plotly_chart(fig, use_container_width=True)
-                st.session_state.ppt_export_dict[f"{rootcause_val} - Chart"] = fig
+        st.session_state.ppt_export_dict[f"{rootcause_val} - Chart"] = fig
 
 # --- MAIN NAVIGATION ---
 st.sidebar.title("☰ Navigation Menu")
