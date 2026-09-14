@@ -904,7 +904,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             # Chart အတွက် Header နာမည်များ သတ်မှတ်ခြင်း
             df_target.columns = ["Rootcause", "1st Week", "2nd Week", "3rd Week", "4th Week"]
             
-            # (၁) Rootcause နေရာတွင် NaN ဖြစ်နေသော အပို Row များကို ဖျက်ရန် (ပုံထဲမှ အောက်ဆုံး Row အလွတ်ကို ဖျောက်ရန်)
+            # (၁) Rootcause နေရာတွင် NaN ဖြစ်နေသော အပို Row များကို ဖျက်ရန်
             df_target = df_target.dropna(subset=["Rootcause"])
             
             # (၂) Data မရှိသော နေရာများ (NaN) ကို 0 ဖြင့် အစားထိုးရန် နှင့် Point (.0) များဖျောက်ရန် Integer ပြောင်းရန်
@@ -918,9 +918,20 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             st.markdown("---")
             
             # (၃) Chart တွင် "Total" Bar မပြစေရန် 'Total' Row ကို ဖယ်ထုတ်ခြင်း 
-            # (တခြား "Box No Cover Total" စသည်တို့ မပါသွားစေရန် Exact match သုံးထားပါသည်)
             df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"]
             
+            # (၄) X-axis Label များကို အတည့်ဖြစ်စေရန် (word wrap) ပြုလုပ်ပေးမည့် Helper Function
+            import textwrap
+            def wrap_labels(label_str, width=15):
+                """စာလုံးအရေအတွက် 'width' ကျော်ပါက <br> ဖြင့် line break လုပ်ပေးမည်"""
+                if pd.isna(label_str):
+                    return ""
+                # textwrap က list ပြန်ပေးသည့်အတွက် <br> ဖြင့် ပြန်ဆက်ပေးသည်
+                return "<br>".join(textwrap.wrap(str(label_str), width=width))
+                
+            # Rootcause Column ထဲက စာတွေကို Line Break ပါတဲ့ စာတွေနဲ့ အစားထိုးခြင်း
+            df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
+
             # Chart အတွက် Data ကို Long Format (Melt) ပြောင်းခြင်း
             df_melted = df_chart.melt(
                 id_vars=["Rootcause"],
@@ -938,7 +949,6 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 barmode="group",
                 text="Count",
                 title="Box Issues Weekly Fixed Report",
-                # ပုံ (၃) မှ အရောင်များအတိုင်း သတ်မှတ်ခြင်း
                 color_discrete_map={
                     "1st Week": "#4285F4", 
                     "2nd Week": "#EA4335", 
@@ -949,13 +959,19 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             
             # Chart Design ပြင်ဆင်ခြင်း
             fig.update_traces(textposition="outside", textfont_size=12)
+            
+            # (၅) X-axis စာသားများကို အတည့် (tickangle=0) ထားရန်
             fig.update_layout(
                 xaxis_title="Rootcause",
                 yaxis_title="",
                 legend_title_text="",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                margin=dict(l=20, r=20, t=50, b=40),
-                height=450
+                xaxis=dict(
+                    tickangle=0,       # အတည့်ထားမည်
+                    tickfont=dict(size=11) # စာလုံးဆိုဒ် အနည်းငယ်သေးပေးခြင်း (နေရာပိုရစေရန်)
+                ),
+                margin=dict(l=20, r=20, t=50, b=80), # အောက်ဘက် Label နေရာပိုရရန် bottom margin (b) ကို 80 အထိ တိုးပေးသည်
+                height=500 # Chart အမြင့်ကို နည်းနည်းထပ်တိုးပေးသည်
             )
             
             # Chart ကို Web ပေါ်တင်ခြင်း
