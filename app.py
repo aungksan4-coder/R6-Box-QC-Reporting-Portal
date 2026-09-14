@@ -894,91 +894,112 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
     elif view_mode == "Box Issue Weekly Fixed & Backlog":
         st.markdown("### Box Issue Weekly Fixed & Backlog")
         
+        import textwrap
+        def wrap_labels(label_str, width=15):
+            """စာလုံးအရေအတွက် 'width' ကျော်ပါက <br> ဖြင့် line break လုပ်ပေးမည်"""
+            if pd.isna(label_str):
+                return ""
+            return "<br>".join(textwrap.wrap(str(label_str), width=width))
+
+        week_cols = ["1st Week", "2nd Week", "3rd Week", "4th Week"]
+        chart_colors = {
+            "1st Week": "#4285F4", 
+            "2nd Week": "#EA4335", 
+            "3rd Week": "#FBBC04", 
+            "4th Week": "#34A853"
+        }
+
+        # ==========================================
+        # ၁။ FIRST DATA: Box Issues Weekly Fixed Report
+        # ==========================================
         try:
-            # Main Summary Tab မှ Data ဆွဲယူခြင်း
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
-            # Column A (Index 0) နှင့် F မှ I (Index 5,6,7,8) ကို Row 2 မှ 9 (Index 0 မှ 7) အထိ ဖြတ်ယူခြင်း
+            # Column A (Index 0) နှင့် F မှ I (Index 5,6,7,8) 
             df_target = df_main.iloc[0:8, [0, 5, 6, 7, 8]].copy()
+            df_target.columns = ["Rootcause"] + week_cols
             
-            # Chart အတွက် Header နာမည်များ သတ်မှတ်ခြင်း
-            df_target.columns = ["Rootcause", "1st Week", "2nd Week", "3rd Week", "4th Week"]
-            
-            # (၁) Rootcause နေရာတွင် NaN ဖြစ်နေသော အပို Row များကို ဖျက်ရန်
             df_target = df_target.dropna(subset=["Rootcause"])
             
-            # (၂) Data မရှိသော နေရာများ (NaN) ကို 0 ဖြင့် အစားထိုးရန် နှင့် Point (.0) များဖျောက်ရန် Integer ပြောင်းရန်
-            week_cols = ["1st Week", "2nd Week", "3rd Week", "4th Week"]
             for col in week_cols:
                 df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
             
-            # ဇယား (Table) ကို အရင်ပြသခြင်း (ဒီဇယားမှာ Total အထိ ပါပါမယ်)
             st.dataframe(df_target, use_container_width=True)
             
-            st.markdown("---")
-            
-            # (၃) Chart တွင် "Total" Bar မပြစေရန် 'Total' Row ကို ဖယ်ထုတ်ခြင်း 
-            df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"]
-            
-            # (၄) X-axis Label များကို အတည့်ဖြစ်စေရန် (word wrap) ပြုလုပ်ပေးမည့် Helper Function
-            import textwrap
-            def wrap_labels(label_str, width=15):
-                """စာလုံးအရေအတွက် 'width' ကျော်ပါက <br> ဖြင့် line break လုပ်ပေးမည်"""
-                if pd.isna(label_str):
-                    return ""
-                # textwrap က list ပြန်ပေးသည့်အတွက် <br> ဖြင့် ပြန်ဆက်ပေးသည်
-                return "<br>".join(textwrap.wrap(str(label_str), width=width))
-                
-            # Rootcause Column ထဲက စာတွေကို Line Break ပါတဲ့ စာတွေနဲ့ အစားထိုးခြင်း
+            df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
             df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
 
-            # Chart အတွက် Data ကို Long Format (Melt) ပြောင်းခြင်း
             df_melted = df_chart.melt(
-                id_vars=["Rootcause"],
-                value_vars=week_cols,
-                var_name="Week",
-                value_name="Count"
+                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
             )
             
-            # Plotly Grouped Bar Chart ဆွဲခြင်း
-            fig = px.bar(
-                df_melted,
-                x="Rootcause",
-                y="Count",
-                color="Week",
-                barmode="group",
-                text="Count",
-                title="Box Issues Weekly Fixed Report",
-                color_discrete_map={
-                    "1st Week": "#4285F4", 
-                    "2nd Week": "#EA4335", 
-                    "3rd Week": "#FBBC04", 
-                    "4th Week": "#34A853"
-                }
+            fig1 = px.bar(
+                df_melted, x="Rootcause", y="Count", color="Week", barmode="group",
+                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors
             )
-            
-            # Chart Design ပြင်ဆင်ခြင်း
-            fig.update_traces(textposition="outside", textfont_size=12)
-            
-            # (၅) X-axis စာသားများကို အတည့် (tickangle=0) ထားရန်
-            fig.update_layout(
-                xaxis_title="Rootcause",
-                yaxis_title="",
-                legend_title_text="",
+            fig1.update_traces(textposition="outside", textfont_size=12)
+            fig1.update_layout(
+                xaxis_title="Rootcause", yaxis_title="", legend_title_text="",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(
-                    tickangle=0,       # အတည့်ထားမည်
-                    tickfont=dict(size=11) # စာလုံးဆိုဒ် အနည်းငယ်သေးပေးခြင်း (နေရာပိုရစေရန်)
-                ),
-                margin=dict(l=20, r=20, t=50, b=80), # အောက်ဘက် Label နေရာပိုရရန် bottom margin (b) ကို 80 အထိ တိုးပေးသည်
-                height=500 # Chart အမြင့်ကို နည်းနည်းထပ်တိုးပေးသည်
+                xaxis=dict(tickangle=0, tickfont=dict(size=11)),
+                margin=dict(l=20, r=20, t=50, b=80), height=500
             )
-            
-            # Chart ကို Web ပေါ်တင်ခြင်း
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig1, use_container_width=True)
             
         except Exception as e:
             st.error(f"Error loading 'Main Summary' data: {e}")
+
+        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ==========================================
+        # ၂။ SECOND DATA: Box Issues Weekly Backlog
+        # ==========================================
+        st.markdown("### Box Issues Weekly Backlog")
+        
+        try:
+            # "Weekly Box Issue Incomes BackLog" Tab မှ Data ဆွဲယူခြင်း
+            df_backlog_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Weekly Box Issue Incomes BackLog")
+            
+            # Column A မှ E အထိ (Index 0,1,2,3,4) ကို ဖြတ်ယူခြင်း (A1:E8 limit အရ Row 8 ခုခန့် ယူမည်)
+            df_backlog = df_backlog_main.iloc[0:8, 0:5].copy()
+            df_backlog.columns = ["Rootcause"] + week_cols
+            
+            # NaN အပို Row များဖျက်ခြင်း
+            df_backlog = df_backlog.dropna(subset=["Rootcause"])
+            
+            # Data မရှိသော နေရာများ (NaN) ကို 0 အစားထိုးပြီး .0 ဖျောက်ရန် Int ပြောင်းခြင်း
+            for col in week_cols:
+                df_backlog[col] = pd.to_numeric(df_backlog[col], errors="coerce").fillna(0).astype(int)
+            
+            # ဇယား (Table) ပြသခြင်း
+            st.dataframe(df_backlog, use_container_width=True)
+            
+            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း နှင့် X-axis စာသား အတည့်ထားရန် Wrap လုပ်ခြင်း
+            df_chart_bl = df_backlog[df_backlog["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
+            df_chart_bl["Rootcause"] = df_chart_bl["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
+
+            # Chart Data ဖန်တီးခြင်း
+            df_melted_bl = df_chart_bl.melt(
+                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
+            )
+            
+            # Plotly Grouped Bar Chart ဆွဲခြင်း
+            fig2 = px.bar(
+                df_melted_bl, x="Rootcause", y="Count", color="Week", barmode="group",
+                text="Count", title="Box Issues Weekly Backlog", color_discrete_map=chart_colors
+            )
+            fig2.update_traces(textposition="outside", textfont_size=12)
+            fig2.update_layout(
+                xaxis_title="Rootcause", yaxis_title="", legend_title_text="",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                xaxis=dict(tickangle=0, tickfont=dict(size=11)),
+                margin=dict(l=20, r=20, t=50, b=80), height=500
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error loading 'Weekly Box Issue Incomes BackLog' data: {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
