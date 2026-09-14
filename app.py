@@ -764,6 +764,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         [
             "Box Summary",
             "Bracket Summary",
+                        "Box Issue Weekly Fixed & Backlog",
             "📷 Photo for Box Fixed & Issues"
         ])
     st.sidebar.markdown("---")
@@ -888,6 +889,72 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
 
         except Exception as e:
             st.error(f"Error loading 'Bracket Issue': {e}")
+
+       # --- VIEW: BOX ISSUE WEEKLY FIXED & BACKLOG ---
+    elif view_mode == "Box Issue Weekly Fixed & Backlog":
+        st.markdown("### Box Issue Weekly Fixed & Backlog")
+        
+        try:
+            # Main Summary Tab မှ Data ဆွဲယူခြင်း
+            df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
+            
+            # Column A (Index 0) နှင့် F ຫາ I (Index 5,6,7,8) ကို Row 2 မှ 9 (Index 0 မှ 7) အထိ ဖြတ်ယူခြင်း
+            # မှတ်ချက်: pd.read_csv က Row 1 ကို Header အဖြစ်ယူထားပါက Data Row 1 သည် Index 0 ဖြစ်ပါသည်။
+            df_target = df_main.iloc[0:8, [0, 5, 6, 7, 8]].copy()
+            
+            # Chart အတွက် Header နာမည်များ သတ်မှတ်ခြင်း
+            df_target.columns = ["Rootcause", "1st Week", "2nd Week", "3rd Week", "4th Week"]
+            
+            # ဇယား (Table) ကို အရင်ပြသခြင်း
+            st.dataframe(df_target, use_container_width=True)
+            
+            st.markdown("---")
+            
+            # Chart အတွက် Data ကို Long Format (Melt) ပြောင်းခြင်း
+            df_melted = df_target.melt(
+                id_vars=["Rootcause"],
+                value_vars=["1st Week", "2nd Week", "3rd Week", "4th Week"],
+                var_name="Week",
+                value_name="Count"
+            )
+            
+            # String များကို Numeric အဖြစ်ပြောင်းပေးခြင်း (Error ကာကွယ်ရန်)
+            df_melted["Count"] = pd.to_numeric(df_melted["Count"], errors="coerce").fillna(0)
+            
+            # Plotly Grouped Bar Chart ဆွဲခြင်း
+            fig = px.bar(
+                df_melted,
+                x="Rootcause",
+                y="Count",
+                color="Week",
+                barmode="group",
+                text="Count",
+                title="Box Issues Weekly Fixed Report",
+                # ပုံ (၃) မှ အရောင်များအတိုင်း သတ်မှတ်ခြင်း
+                color_discrete_map={
+                    "1st Week": "#4285F4", 
+                    "2nd Week": "#EA4335", 
+                    "3rd Week": "#FBBC04", 
+                    "4th Week": "#34A853"
+                }
+            )
+            
+            # Chart Design ပြင်ဆင်ခြင်း
+            fig.update_traces(textposition="outside", textfont_size=12)
+            fig.update_layout(
+                xaxis_title="Rootcause",
+                yaxis_title="",
+                legend_title_text="",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=20, r=20, t=50, b=40),
+                height=450
+            )
+            
+            # Chart ကို Web ပေါ်တင်ခြင်း
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error loading 'Main Summary' data: {e}")
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
