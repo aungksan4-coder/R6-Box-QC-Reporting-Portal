@@ -842,7 +842,7 @@ if selected_page == "Key Report Data":
                         
                         # ဒီနေရာမှာ hide_index=True လေး ထည့်လိုက်ပါပြီ
                         st.dataframe(sliced, use_container_width=True, hide_index=True)
-                                                st.session_state.ppt_export_dict["Box QC Summary"] = sliced
+                        st.session_state.ppt_export_dict["Box QC Summary"] = sliced
                     else:
                         # ဒီနေရာမှာလည်း hide_index=True လေး ထည့်လိုက်ပါပြီ
                         st.dataframe(summary_df.fillna("").astype(str).head(8), use_container_width=True, hide_index=True)
