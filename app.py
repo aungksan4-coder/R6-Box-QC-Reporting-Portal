@@ -171,6 +171,9 @@ def save_box_state():
 
 st.set_page_config(page_title="Operations Reporting Portal", layout="wide")
 
+if "ppt_export_dict" not in st.session_state:
+    st.session_state.ppt_export_dict = {}
+
 # အပေါ်ဆုံးကို ပြန်တက်ရန်အတွက် မျက်စိဖြင့်မမြင်ရသော မှတ်တိုင်လေးတစ်ခု ဖန်တီးခြင်း
 st.markdown("<div id='top-of-page'></div>", unsafe_allow_html=True)
 
@@ -502,6 +505,94 @@ selected_page = st.sidebar.selectbox(
     key="page_navigation_selectbox")
 st.query_params["page"] = selected_page
 
+# ==============================================================================
+# ထပ်ထည့်ရမည့် PPT GENERATION & DOWNLOAD BUTTON အပိုင်း 
+# ==============================================================================
+def generate_ppt_from_state():
+    from pptx import Presentation
+    from pptx.util import Inches
+    import io
+    import pandas as pd
+    import plotly.graph_objects as go
+    import requests
+    
+    prs = Presentation()
+    # Title Slide
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
+    slide.shapes.title.text = "Operations Reporting Portal"
+    slide.placeholders[1].text = "Filtered Data Export"
+    
+    # (၁) သိမ်းထားသော Table နှင့် Chart များကို ဆွဲထုတ်ခြင်း
+    for title, item in st.session_state.ppt_export_dict.items():
+        if isinstance(item, pd.DataFrame):
+            # Table များကို Slide ထဲထည့်ခြင်း
+            slide = prs.slides.add_slide(prs.slide_layouts[5])
+            slide.shapes.title.text = title
+            rows, cols = item.shape
+            max_rows = min(rows + 1, 16) # PPT တွင်ဆံ့စေရန် အများဆုံး Row 15 သာယူမည်
+            
+            try:
+                table_shape = slide.shapes.add_table(max_rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(0.3 * max_rows)).table
+                for i, col_name in enumerate(item.columns):
+                    table_shape.cell(0, i).text = str(col_name)
+                for r in range(max_rows - 1):
+                    for c in range(cols):
+                        table_shape.cell(r + 1, c).text = str(item.iloc[r, c])
+            except Exception:
+                pass
+                
+        elif isinstance(item, go.Figure):
+            # Chart များကို ပုံအဖြစ်ပြောင်းပြီး Slide ထဲထည့်ခြင်း
+            slide = prs.slides.add_slide(prs.slide_layouts[5])
+            slide.shapes.title.text = title
+            try:
+                img_bytes = item.to_image(format="png", width=900, height=500)
+                slide.shapes.add_picture(io.BytesIO(img_bytes), Inches(0.5), Inches(1.5), width=Inches(9))
+            except Exception as e:
+                slide.shapes.title.text = f"{title} (Chart Error: Ensure 'kaleido' is installed)"
+                
+    # (၂) Photo များကို ဆွဲထုတ်ခြင်း (Box Gallery Overrides မှ)
+    if "box_gallery_overrides" in st.session_state:
+        for key, card_data in st.session_state.box_gallery_overrides.items():
+            img1_url, img2_url = card_data.get("img1"), card_data.get("img2")
+            if img1_url or img2_url:
+                slide = prs.slides.add_slide(prs.slide_layouts[5])
+                slide.shapes.title.text = f"Box ID: {card_data.get('box_id', 'Unknown')} - {card_data.get('action', '')}"
+                try:
+                    if img1_url:
+                        resp = requests.get(img1_url)
+                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(0.5), Inches(2), width=Inches(4))
+                    if img2_url:
+                        resp = requests.get(img2_url)
+                        slide.shapes.add_picture(io.BytesIO(resp.content), Inches(5), Inches(2), width=Inches(4))
+                except Exception:
+                    pass
+                    
+    # File အဖြစ်ပြောင်းပေးခြင်း
+    ppt_stream = io.BytesIO()
+    prs.save(ppt_stream)
+    ppt_stream.seek(0)
+    return ppt_stream.getvalue()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📥 Export Report")
+if st.sidebar.button("📦 Prepare PPT Export", use_container_width=True):
+    with st.spinner("Generating PowerPoint... (This may take a minute)"):
+        try:
+            ppt_bytes = generate_ppt_from_state()
+            st.session_state['ready_ppt'] = ppt_bytes
+            st.sidebar.success("✅ PPT Ready! Click below to download.")
+        except Exception as e:
+            st.sidebar.error(f"Error generating PPT: {e}")
+            
+if 'ready_ppt' in st.session_state:
+    st.sidebar.download_button(
+        label="⬇️ Download PPT File",
+        data=st.session_state['ready_ppt'],
+        file_name="Operations_Dashboard_Report.pptx",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        use_container_width=True
+    )
 st.sidebar.markdown("---")
 
 # ==============================================================================
@@ -581,6 +672,7 @@ if selected_page == "Key Report Data":
 
             c1, c2 = st.columns(2)
             with c1: st.dataframe(mdy_cnt, use_container_width=True)
+            st.session_state.ppt_export_dict["MDY Key QC - Count"] = mdy_cnt
             with c2: st.dataframe(mdy_pct, use_container_width=True)
 
             st.markdown("---")
@@ -925,6 +1017,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
             
             st.dataframe(df_target, use_container_width=True)
+            st.session_state.ppt_export_dict["Box Issues Weekly Fixed - Table"] = df_target
             
             df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
             df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
@@ -945,7 +1038,8 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 margin=dict(l=20, r=20, t=50, b=80), height=500
             )
             st.plotly_chart(fig1, use_container_width=True)
-            
+            st.session_state.ppt_export_dict["Box Issues Weekly Fixed - Chart"] = fig1
+
         except Exception as e:
             st.error(f"Error loading 'Main Summary' data: {e}")
 
