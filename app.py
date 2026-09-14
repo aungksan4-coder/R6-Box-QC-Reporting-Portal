@@ -422,7 +422,7 @@ def render_city_status_pivot_and_chart(tab_name, city_col_idx=0, site_code_col_i
         final_table = pd.concat([pivot_df, gt_row.to_frame().T])
 
         st.dataframe(final_table, use_container_width=True)
-                st.session_state.ppt_export_dict[f"{tab_name} - Table"] = final_table
+        st.session_state.ppt_export_dict[f"{tab_name} - Table"] = final_table
 
         fig = render_fixed_not_fix_chart(pivot_df, category_label=city_col)
         if fig:
