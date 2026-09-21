@@ -595,6 +595,32 @@ if selected_page == "Key Report Data":
             c3, c4 = st.columns(2)
             with c3: st.dataframe(reg_cnt, use_container_width=True)
             with c4: st.dataframe(reg_pct, use_container_width=True)
+# --- Key QC Drill Down အစ ---
+            st.markdown("---")
+            with st.expander("🔍 View Raw Detail (Drill-down for Key QC)"):
+                st.markdown("**အသေးစိတ်ကြည့်ရှုလိုသော အချက်အလက်များကို ရွေးချယ်ပါ**")
+                
+                f_col1, f_col2, f_col3 = st.columns(3)
+                with f_col1:
+                    sel_city = st.selectbox("Select Region", ["All", "MDY", "OC"], key="kqc_city")
+                with f_col2:
+                    sel_team = st.selectbox("Select Team", ["All"] + list(df_filtered[team_col].dropna().unique()), key="kqc_team")
+                with f_col3:
+                    sel_status = st.selectbox("Select Status", ["All", "Pass", "Fail", "Bypass"], key="kqc_status")
+                    
+                # Data စစ်ထုတ်ခြင်း (Filtering)
+                drill_df = df_filtered.copy()
+                if sel_city != "All":
+                    drill_df = drill_df[drill_df[city_col] == sel_city]
+                if sel_team != "All":
+                    drill_df = drill_df[drill_df[team_col] == sel_team]
+                if sel_status != "All":
+                    drill_df = drill_df[drill_df[status_col] == sel_status]
+                    
+                st.caption(f"Showing {len(drill_df)} records")
+                # Custom HTML ကိုကျော်၍ မူလ Streamlit Dataframe ဖြင့် Raw Data ကို ပြသခြင်း
+                _original_dataframe(drill_df, use_container_width=True)
+            # --- Key QC Drill Down အဆုံး ---
 
         except Exception as e:
             st.error(f"Error loading Key QC view: {e}")
@@ -672,6 +698,31 @@ if selected_page == "Key Report Data":
                 cnt_pf, pct_pf = build_count_and_pct_pivots(df_filtered, region_col, final_status_col, box_col, ["Pass", "Fail"])
                 st.dataframe(sort_table_preserve_gt(cnt_pf, sort_by_choice, is_ascending), use_container_width=True)
                 st.dataframe(sort_table_preserve_gt(pct_pf, sort_by_choice, is_ascending), use_container_width=True)
+# --- Box QC Drill Down အစ ---
+            st.markdown("---")
+            with st.expander("🔍 View Raw Detail (Drill-down for Box QC)"):
+                st.markdown("**အသေးစိတ်ကြည့်ရှုလိုသော အချက်အလက်များကို ရွေးချယ်ပါ**")
+                
+                b_col1, b_col2, b_col3 = st.columns(3)
+                with b_col1:
+                    sel_b_region = st.selectbox("Select Region", ["All"] + list(df_filtered[region_col].dropna().unique()), key="bqc_region")
+                with b_col2:
+                    sel_b_status = st.selectbox("Final Status", ["All", "Pass", "Fail"], key="bqc_status")
+                with b_col3:
+                    sel_b_fail_act = st.selectbox("Fail Status Action", ["All", "Take Action", "No Take Action"], key="bqc_fail_status")
+                    
+                # Data စစ်ထုတ်ခြင်း (Filtering)
+                b_drill_df = df_filtered.copy()
+                if sel_b_region != "All":
+                    b_drill_df = b_drill_df[b_drill_df[region_col] == sel_b_region]
+                if sel_b_status != "All":
+                    b_drill_df = b_drill_df[b_drill_df[final_status_col].astype(str).str.title() == sel_b_status]
+                if sel_b_fail_act != "All":
+                    b_drill_df = b_drill_df[b_drill_df[fail_status_col].astype(str).str.title() == sel_b_fail_act]
+                    
+                st.caption(f"Showing {len(b_drill_df)} records")
+                _original_dataframe(b_drill_df, use_container_width=True)
+            # --- Box QC Drill Down အဆုံး ---
 
             with mid_col2:
                 st.markdown("**R6 Fail Result ( Take Action and No Take Action)**")
@@ -694,6 +745,30 @@ if selected_page == "Key Report Data":
                 lw_fail_df = df_last_week[df_last_week[final_status_col].astype(str).str.upper() == "FAIL"]
                 lw_fc_df = build_fail_category_pivot(lw_fail_df, fail_reason_col, region_col, box_col)
                 st.dataframe(sort_table_preserve_gt(lw_fc_df, sort_by_choice, is_ascending), use_container_width=True)
+# --- Cross Team QC Drill Down အစ ---
+                with st.expander("🔍 View Raw Detail (Drill-down for Cross Team QC)"):
+                    st.markdown("**အသေးစိတ်ကြည့်ရှုလိုသော အချက်အလက်များကို ရွေးချယ်ပါ**")
+                    
+                    c_col1, c_col2, c_col3 = st.columns(3)
+                    with c_col1:
+                        sel_c_region = st.selectbox("Select Region", ["All", "MDY", "OC"], key="cqc_region")
+                    with c_col2:
+                        sel_c_team = st.selectbox("Select Team", ["All"] + list(df_filtered[team_col].dropna().unique()), key="cqc_team")
+                    with c_col3:
+                        sel_c_status = st.selectbox("Select Status", ["All", "Pass", "Fail"], key="cqc_status")
+                        
+                    # Data စစ်ထုတ်ခြင်း (Filtering)
+                    c_drill_df = df_filtered.copy()
+                    if sel_c_region != "All":
+                        c_drill_df = c_drill_df[c_drill_df[region_col] == sel_c_region]
+                    if sel_c_team != "All":
+                        c_drill_df = c_drill_df[c_drill_df[team_col] == sel_c_team]
+                    if sel_c_status != "All":
+                        c_drill_df = c_drill_df[c_drill_df[final_status_col].astype(str).str.title() == sel_c_status]
+                        
+                    st.caption(f"Showing {len(c_drill_df)} records")
+                    _original_dataframe(c_drill_df, use_container_width=True)
+                # --- Cross Team QC Drill Down အဆုံး ---
 
         except Exception as e:
             st.error(f"Error loading Box QC view: {e}")
