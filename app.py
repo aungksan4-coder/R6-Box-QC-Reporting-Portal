@@ -910,50 +910,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         }
 
         # ==========================================
-        # ၁။ FIRST DATA: Box Issues Weekly Fixed Report
-        # ==========================================
-        try:
-            df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
-            
-            # Column A (Index 0) နှင့် F မှ I (Index 5,6,7,8) 
-            df_target = df_main.iloc[0:8, [0, 5, 6, 7, 8]].copy()
-            df_target.columns = ["Rootcause"] + week_cols
-            
-            df_target = df_target.dropna(subset=["Rootcause"])
-            
-            for col in week_cols:
-                df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
-            
-            st.dataframe(df_target, use_container_width=True)
-            
-            df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
-            df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
-
-            df_melted = df_chart.melt(
-                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
-            )
-            
-            fig1 = px.bar(
-                df_melted, x="Rootcause", y="Count", color="Week", barmode="group",
-                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors
-            )
-            fig1.update_traces(textposition="outside", textfont_size=12)
-            fig1.update_layout(
-                xaxis_title="Rootcause", yaxis_title="", legend_title_text="",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(tickangle=0, tickfont=dict(size=11)),
-                margin=dict(l=20, r=20, t=50, b=80), height=500
-            )
-            st.plotly_chart(fig1, use_container_width=True)
-            
-        except Exception as e:
-            st.error(f"Error loading 'Main Summary' data: {e}")
-
-        st.markdown("---")
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ==========================================
-        # ၂။ SECOND DATA: Box Issues Weekly Backlog
+        # ၁။ FIRST DATA: Box Issues Weekly Backlog
         # ==========================================
         st.markdown("### Box Issues Weekly Incomes Backlog")
         
@@ -1000,6 +957,49 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             
         except Exception as e:
             st.error(f"Error loading 'Weekly Box Issue Incomes BackLog' data: {e}")
+
+        # ==========================================
+        # ၂။ SECOND DATA: Box Issues Weekly Fixed Report
+        # ==========================================
+        try:
+            df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
+            
+            # Column A (Index 0) နှင့် F မှ I (Index 5,6,7,8) 
+            df_target = df_main.iloc[0:8, [0, 5, 6, 7, 8]].copy()
+            df_target.columns = ["Rootcause"] + week_cols
+            
+            df_target = df_target.dropna(subset=["Rootcause"])
+            
+            for col in week_cols:
+                df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
+            
+            st.dataframe(df_target, use_container_width=True)
+            
+            df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
+            df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
+
+            df_melted = df_chart.melt(
+                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
+            )
+            
+            fig1 = px.bar(
+                df_melted, x="Rootcause", y="Count", color="Week", barmode="group",
+                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors
+            )
+            fig1.update_traces(textposition="outside", textfont_size=12)
+            fig1.update_layout(
+                xaxis_title="Rootcause", yaxis_title="", legend_title_text="",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                xaxis=dict(tickangle=0, tickfont=dict(size=11)),
+                margin=dict(l=20, r=20, t=50, b=80), height=500
+            )
+            st.plotly_chart(fig1, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error loading 'Main Summary' data: {e}")
+
+        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
 
     # --- VIEW 3: PHOTO EVIDENCE GALLERY (FOR BOX DATA PAGE) ---
     elif view_mode == "📷 Photo for Box Fixed & Issues":
