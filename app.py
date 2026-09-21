@@ -961,6 +961,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         # ==========================================
         # ၂။ SECOND DATA: Box Issues Weekly Fixed Report
         # ==========================================
+        st.markdown("### Box Issues Weekly Fixed")
         try:
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
