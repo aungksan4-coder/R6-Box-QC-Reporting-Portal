@@ -619,7 +619,7 @@ if selected_page == "Key Report Data":
                     
                 st.caption(f"Showing {len(drill_df)} records")
                 # Custom HTML ကိုကျော်၍ မူလ Streamlit Dataframe ဖြင့် Raw Data ကို ပြသခြင်း
-                _original_dataframe(drill_df, use_container_width=True)
+                _original_dataframe(drill_df.fillna(""), use_container_width=True)
             # --- Key QC Drill Down အဆုံး ---
 
         except Exception as e:
@@ -721,7 +721,7 @@ if selected_page == "Key Report Data":
                     b_drill_df = b_drill_df[b_drill_df[fail_status_col].astype(str).str.title() == sel_b_fail_act]
                     
                 st.caption(f"Showing {len(b_drill_df)} records")
-                _original_dataframe(b_drill_df, use_container_width=True)
+                _original_dataframe(b_drill_df.fillna(""), use_container_width=True)
             # --- Box QC Drill Down အဆုံး ---
 
             with mid_col2:
@@ -767,7 +767,7 @@ if selected_page == "Key Report Data":
                         c_drill_df = c_drill_df[c_drill_df[final_status_col].astype(str).str.title() == sel_c_status]
                         
                     st.caption(f"Showing {len(c_drill_df)} records")
-                    _original_dataframe(c_drill_df, use_container_width=True)
+                    _original_dataframe(c_drill_df.fillna(""), use_container_width=True)
                 # --- Cross Team QC Drill Down အဆုံး ---
 
         except Exception as e:
