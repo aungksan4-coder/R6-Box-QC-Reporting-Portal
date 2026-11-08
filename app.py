@@ -909,6 +909,9 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             "4th Week": "#34A853"
         }
 
+        # (၁) မူလက Hardcode လုပ်ထားသော week_cols နေရာတွင် Source Sheet မှ Date များကို တိုက်ရိုက်ယူပါမည်
+        # week_cols = ["1st Week", "2nd Week", "3rd Week", "4th Week"] ကို အောက်ပါအတိုင်း ပြောင်းပါမည်
+        
         # ==========================================
         # ၁။ FIRST DATA: Box Issues Weekly Backlog
         # ==========================================
@@ -918,8 +921,28 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             # "Weekly Box Issue Incomes BackLog" Tab မှ Data ဆွဲယူခြင်း
             df_backlog_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Weekly Box Issue Incomes BackLog")
             
-            # Column A မှ E အထိ (Index 0,1,2,3,4) ကို ဖြတ်ယူခြင်း (A1:E8 limit အရ Row 8 ခုခန့် ယူမည်)
-            df_backlog = df_backlog_main.iloc[0:8, 0:5].copy()
+            # Row 1 တွင်ရှိသော Date ခေါင်းစဉ်များကို Column E, F, G, H (Index 4, 5, 6, 7) မှ တိုက်ရိုက်ဆွဲယူမည်
+            raw_week_cols = df_backlog_main.columns[4:8].tolist()
+            
+            # Date ခေါင်းစဉ်များ သန့်စင်ခြင်း (Nan ဖြစ်နေပါက Default အစားထိုးမည်)
+            week_cols = []
+            for i, col in enumerate(raw_week_cols):
+                clean_col = str(col).strip()
+                if clean_col.lower() == "nan" or clean_col == "":
+                    week_cols.append(f"Week {i+1}")
+                else:
+                    week_cols.append(clean_col)
+
+            # Chart အရောင်များ
+            chart_colors = {
+                week_cols[0]: "#4285F4", 
+                week_cols[1]: "#EA4335", 
+                week_cols[2]: "#FBBC04", 
+                week_cols[3]: "#34A853"
+            }
+            
+            # Column A မှ E အထိ (Index 0,4,5,6,7) ကို ဖြတ်ယူခြင်း
+            df_backlog = df_backlog_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
             df_backlog.columns = ["Rootcause"] + week_cols
             
             # NaN အပို Row များဖျက်ခြင်း
@@ -965,8 +988,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         try:
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
-            # ဤနေရာတွင် မူလ [0, 5, 6, 7, 8] အစား [0, 4, 5, 6, 7] သို့ ပြောင်းပေးရပါမည်
-            # Column A (Index 0) နှင့် Column E, F, G, H (Index 4, 5, 6, 7) တို့ကို တိကျစွာ ဆွဲယူရန်ဖြစ်သည်
+            # Column A (Index 0) နှင့် Column E, F, G, H (Index 4, 5, 6, 7) တို့ကို တိကျစွာ ဆွဲယူရန်
             df_target = df_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
             df_target.columns = ["Rootcause"] + week_cols
             
