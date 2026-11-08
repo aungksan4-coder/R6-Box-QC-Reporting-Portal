@@ -890,7 +890,26 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         except Exception as e:
             st.error(f"Error loading 'Bracket Issue': {e}")
 
-      # ==========================================
+      # --- VIEW: BOX ISSUE WEEKLY FIXED & BACKLOG ---
+    elif view_mode == "Box Issue Weekly Fixed & Backlog":
+        st.markdown("### Box Issue Weekly Fixed")
+        
+        import textwrap
+        def wrap_labels(label_str, width=15):
+            """စာလုံးအရေအတွက် 'width' ကျော်ပါက <br> ဖြင့် line break လုပ်ပေးမည်"""
+            if pd.isna(label_str):
+                return ""
+            return "<br>".join(textwrap.wrap(str(label_str), width=width))
+
+        week_cols = ["1st Week", "2nd Week", "3rd Week", "4th Week"]
+        chart_colors = {
+            "1st Week": "#4285F4", 
+            "2nd Week": "#EA4335", 
+            "3rd Week": "#FBBC04", 
+            "4th Week": "#34A853"
+        }
+
+        # ==========================================
         # ၁။ FIRST DATA: Box Issues Weekly Backlog
         # ==========================================
         st.markdown("### Box Issues Weekly Incomes Backlog")
