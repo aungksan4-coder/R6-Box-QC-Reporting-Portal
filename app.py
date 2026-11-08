@@ -965,8 +965,9 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         try:
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
-            # Column A (Index 0) နှင့် F မှ I (Index 5,6,7,8) 
-            df_target = df_main.iloc[0:8, [0, 5, 6, 7, 8]].copy()
+            # ဤနေရာတွင် မူလ [0, 5, 6, 7, 8] အစား [0, 4, 5, 6, 7] သို့ ပြောင်းပေးရပါမည်
+            # Column A (Index 0) နှင့် Column E, F, G, H (Index 4, 5, 6, 7) တို့ကို တိကျစွာ ဆွဲယူရန်ဖြစ်သည်
+            df_target = df_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
             df_target.columns = ["Rootcause"] + week_cols
             
             df_target = df_target.dropna(subset=["Rootcause"])
