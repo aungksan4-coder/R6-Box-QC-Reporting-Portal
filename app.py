@@ -901,50 +901,53 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 return ""
             return "<br>".join(textwrap.wrap(str(label_str), width=width))
 
-        week_cols = ["1st Week", "2nd Week", "3rd Week", "4th Week"]
-        chart_colors = {
-            "1st Week": "#4285F4", 
-            "2nd Week": "#EA4335", 
-            "3rd Week": "#FBBC04", 
-            "4th Week": "#34A853"
-        }
-
-        # ==========================================
-        # ၁။ FIRST DATA: Box Issues Weekly Backlog
-        # ==========================================
-        st.markdown("### Box Issues Weekly Incomes Backlog")
-        
         try:
-            # "Weekly Box Issue Incomes BackLog" Tab မှ Data ဆွဲယူခြင်း
+            # ==========================================
+            # ၁။ FIRST DATA: Box Issues Weekly Backlog
+            # ==========================================
+            st.markdown("### Box Issues Weekly Incomes Backlog")
+            
+            # Backlog Sheet မှ Data ဆွဲယူခြင်း
             df_backlog_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Weekly Box Issue Incomes BackLog")
             
-            # Column A မှ E အထိ (Index 0,1,2,3,4) ကို ဖြတ်ယူခြင်း (A1:E8 limit အရ Row 8 ခုခန့် ယူမည်)
+            # (၁) Backlog Sheet ၏ ကိုယ်ပိုင် Date Header များကို Column B မှ E (Index 1, 2, 3, 4) မှ တိုက်ရိုက်ဆွဲယူခြင်း
+            backlog_week_cols = [str(c).strip() for c in df_backlog_main.columns[1:5]]
+            
+            # Chart အရောင်များ (Backlog အတွက်)
+            chart_colors_bl = {
+                backlog_week_cols[0]: "#4285F4", 
+                backlog_week_cols[1]: "#EA4335", 
+                backlog_week_cols[2]: "#FBBC04", 
+                backlog_week_cols[3]: "#34A853"
+            }
+
+            # Backlog Data သည် Column A မှ E အထိ (Index 0, 1, 2, 3, 4) တွင်ရှိသဖြင့် 0:5 ကို ယူပါမည်
             df_backlog = df_backlog_main.iloc[0:8, 0:5].copy()
-            df_backlog.columns = ["Rootcause"] + week_cols
+            df_backlog.columns = ["Rootcause"] + backlog_week_cols
             
             # NaN အပို Row များဖျက်ခြင်း
             df_backlog = df_backlog.dropna(subset=["Rootcause"])
             
-            # Data မရှိသော နေရာများ (NaN) ကို 0 အစားထိုးပြီး .0 ဖျောက်ရန် Int ပြောင်းခြင်း
-            for col in week_cols:
+            # Data များကို Int ပြောင်းခြင်း
+            for col in backlog_week_cols:
                 df_backlog[col] = pd.to_numeric(df_backlog[col], errors="coerce").fillna(0).astype(int)
             
-            # ဇယား (Table) ပြသခြင်း
+            # Backlog ဇယား ပြသခြင်း
             st.dataframe(df_backlog, use_container_width=True)
             
-            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း နှင့် X-axis စာသား အတည့်ထားရန် Wrap လုပ်ခြင်း
+            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း 
             df_chart_bl = df_backlog[df_backlog["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
             df_chart_bl["Rootcause"] = df_chart_bl["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
 
-            # Chart Data ဖန်တီးခြင်း
+            # Backlog Chart Data ဖန်တီးခြင်း
             df_melted_bl = df_chart_bl.melt(
-                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
+                id_vars=["Rootcause"], value_vars=backlog_week_cols, var_name="Week", value_name="Count"
             )
             
             # Plotly Grouped Bar Chart ဆွဲခြင်း
             fig2 = px.bar(
                 df_melted_bl, x="Rootcause", y="Count", color="Week", barmode="group",
-                text="Count", title="Box Issues Weekly Backlog", color_discrete_map=chart_colors
+                text="Count", title="Box Issues Weekly Backlog", color_discrete_map=chart_colors_bl
             )
             fig2.update_traces(textposition="outside", textfont_size=12)
             fig2.update_layout(
@@ -954,39 +957,53 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
                 margin=dict(l=20, r=20, t=50, b=80), height=500
             )
             st.plotly_chart(fig2, use_container_width=True)
-            
-        except Exception as e:
-            st.error(f"Error loading 'Weekly Box Issue Incomes BackLog' data: {e}")
 
-        # ==========================================
-        # ၂။ SECOND DATA: Box Issues Weekly Fixed Report
-        # ==========================================
-        st.markdown("### Box Issues Weekly Fixed")
-        try:
+            # ==========================================
+            # ၂။ SECOND DATA: Box Issues Weekly Fixed Report
+            # ==========================================
+            st.markdown("### Box Issues Weekly Fixed Report")
+            
+            # Main Summary Sheet မှ Data ဆွဲယူခြင်း
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
-            # ဤနေရာတွင် မူလ [0, 5, 6, 7, 8] အစား [0, 4, 5, 6, 7] သို့ ပြောင်းပေးရပါမည်
-            # Column A (Index 0) နှင့် Column E, F, G, H (Index 4, 5, 6, 7) တို့ကို တိကျစွာ ဆွဲယူရန်ဖြစ်သည်
-            df_target = df_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
-            df_target.columns = ["Rootcause"] + week_cols
+            # (၂) Fixed Report ၏ ကိုယ်ပိုင် Date Header များကို Column E မှ H (Index 4, 5, 6, 7) မှ တိုက်ရိုက်ဆွဲယူခြင်း
+            fixed_week_cols = [str(c).strip() for c in df_main.columns[4:8]]
             
+            # Chart အရောင်များ (Fixed Report အတွက်)
+            chart_colors_fixed = {
+                fixed_week_cols[0]: "#4285F4", 
+                fixed_week_cols[1]: "#EA4335", 
+                fixed_week_cols[2]: "#FBBC04", 
+                fixed_week_cols[3]: "#34A853"
+            }
+            
+            # Fixed Report Data သည် Column A နှင့် E, F, G, H (Index 0, 4, 5, 6, 7) တွင်ရှိပါသည်
+            df_target = df_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
+            df_target.columns = ["Rootcause"] + fixed_week_cols
+            
+            # NaN အပို Row များဖျက်ခြင်း
             df_target = df_target.dropna(subset=["Rootcause"])
             
-            for col in week_cols:
+            # Data များကို Int ပြောင်းခြင်း
+            for col in fixed_week_cols:
                 df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
             
+            # Fixed Report ဇယား ပြသခြင်း
             st.dataframe(df_target, use_container_width=True)
             
+            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း 
             df_chart = df_target[df_target["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
             df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
 
+            # Fixed Report Chart Data ဖန်တီးခြင်း
             df_melted = df_chart.melt(
-                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
+                id_vars=["Rootcause"], value_vars=fixed_week_cols, var_name="Week", value_name="Count"
             )
             
+            # Plotly Grouped Bar Chart ဆွဲခြင်း
             fig1 = px.bar(
                 df_melted, x="Rootcause", y="Count", color="Week", barmode="group",
-                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors
+                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors_fixed
             )
             fig1.update_traces(textposition="outside", textfont_size=12)
             fig1.update_layout(
@@ -998,7 +1015,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             st.plotly_chart(fig1, use_container_width=True)
             
         except Exception as e:
-            st.error(f"Error loading 'Main Summary' data: {e}")
+            st.error(f"Error loading Weekly Data: {e}")
 
         st.markdown("---")
         st.markdown("<br>", unsafe_allow_html=True)
