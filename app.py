@@ -967,7 +967,14 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
             # (၂) Fixed Report ၏ ကိုယ်ပိုင် Date Header များကို Column E မှ H (Index 4, 5, 6, 7) မှ တိုက်ရိုက်ဆွဲယူခြင်း
-            fixed_week_cols = [str(c).strip() for c in df_main.columns[4:8]]
+            # Pandas က အပေါ်ဆုံးက 'Fixed' ဆိုတဲ့ စာသားနဲ့ Date ကို ပေါင်းဖတ်သွားတာကို ဖြတ်ထုတ်ပါမည်
+            fixed_week_cols = []
+            for c in df_main.columns[4:8]:
+                clean_c = str(c).strip()
+                # 'Fixed' ဆိုတဲ့စာသား အပိုပါနေရင် အလိုအလျောက် ဖယ်ရှားမည်
+                if "Fixed" in clean_c:
+                    clean_c = clean_c.replace("Fixed", "").strip()
+                fixed_week_cols.append(clean_c)
             
             # Chart အရောင်များ (Fixed Report အတွက်)
             chart_colors_fixed = {
