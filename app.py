@@ -890,18 +890,7 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         except Exception as e:
             st.error(f"Error loading 'Bracket Issue': {e}")
 
-      # --- VIEW: BOX ISSUE WEEKLY FIXED & BACKLOG ---
-    elif view_mode == "Box Issue Weekly Fixed & Backlog":
-        st.markdown("### Box Issue Weekly Fixed")
-        
-        import textwrap
-        def wrap_labels(label_str, width=15):
-            """စာလုံးအရေအတွက် 'width' ကျော်ပါက <br> ဖြင့် line break လုပ်ပေးမည်"""
-            if pd.isna(label_str):
-                return ""
-            return "<br>".join(textwrap.wrap(str(label_str), width=width))
-
-        # ==========================================
+      # ==========================================
         # ၁။ FIRST DATA: Box Issues Weekly Backlog
         # ==========================================
         st.markdown("### Box Issues Weekly Incomes Backlog")
@@ -910,32 +899,25 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             # "Weekly Box Issue Incomes BackLog" Tab မှ Data ဆွဲယူခြင်း
             df_backlog_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Weekly Box Issue Incomes BackLog")
             
-            # (၁) ဤနေရာတွင် Hardcode မလုပ်ဘဲ Sheet ၏ Column ခေါင်းစဉ်များကို တိုက်ရိုက်ဆွဲယူပါမည် (Column E,F,G,H = Index 4,5,6,7)
-            week_cols = [str(c).strip() for c in df_backlog_main.columns[4:8]]
-            
-            chart_colors = {
-                week_cols[0]: "#4285F4", 
-                week_cols[1]: "#EA4335", 
-                week_cols[2]: "#FBBC04", 
-                week_cols[3]: "#34A853"
-            }
-
-            df_backlog = df_backlog_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
+            # Column A မှ E အထိ (Index 0,1,2,3,4) ကို ဖြတ်ယူခြင်း (A1:E8 limit အရ Row 8 ခုခန့် ယူမည်)
+            df_backlog = df_backlog_main.iloc[0:8, 0:5].copy()
             df_backlog.columns = ["Rootcause"] + week_cols
             
             # NaN အပို Row များဖျက်ခြင်း
             df_backlog = df_backlog.dropna(subset=["Rootcause"])
             
+            # Data မရှိသော နေရာများ (NaN) ကို 0 အစားထိုးပြီး .0 ဖျောက်ရန် Int ပြောင်းခြင်း
             for col in week_cols:
                 df_backlog[col] = pd.to_numeric(df_backlog[col], errors="coerce").fillna(0).astype(int)
             
             # ဇယား (Table) ပြသခြင်း
             st.dataframe(df_backlog, use_container_width=True)
             
-            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း 
+            # Chart အတွက် "Total" ဖယ်ထုတ်ခြင်း နှင့် X-axis စာသား အတည့်ထားရန် Wrap လုပ်ခြင်း
             df_chart_bl = df_backlog[df_backlog["Rootcause"].astype(str).str.strip().str.lower() != "total"].copy()
             df_chart_bl["Rootcause"] = df_chart_bl["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
 
+            # Chart Data ဖန်တီးခြင်း
             df_melted_bl = df_chart_bl.melt(
                 id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
             )
@@ -964,22 +946,14 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
         try:
             df_main = fetch_sheet_tab(BOX_DATA_SHEET_ID, "Main Summary")
             
-            # Sheet မှ Date Header များကို တိုက်ရိုက်ဆွဲယူခြင်း
-            week_cols_main = [str(c).strip() for c in df_main.columns[4:8]]
-            
-            chart_colors_main = {
-                week_cols_main[0]: "#4285F4", 
-                week_cols_main[1]: "#EA4335", 
-                week_cols_main[2]: "#FBBC04", 
-                week_cols_main[3]: "#34A853"
-            }
-            
+            # ဤနေရာတွင် မူလ [0, 5, 6, 7, 8] အစား [0, 4, 5, 6, 7] သို့ ပြောင်းပေးရပါမည်
+            # Column A (Index 0) နှင့် Column E, F, G, H (Index 4, 5, 6, 7) တို့ကို တိကျစွာ ဆွဲယူရန်ဖြစ်သည်
             df_target = df_main.iloc[0:8, [0, 4, 5, 6, 7]].copy()
-            df_target.columns = ["Rootcause"] + week_cols_main
+            df_target.columns = ["Rootcause"] + week_cols
             
             df_target = df_target.dropna(subset=["Rootcause"])
             
-            for col in week_cols_main:
+            for col in week_cols:
                 df_target[col] = pd.to_numeric(df_target[col], errors="coerce").fillna(0).astype(int)
             
             st.dataframe(df_target, use_container_width=True)
@@ -988,12 +962,12 @@ elif selected_page == "MSOps6 & FiberOps6 Box Data":
             df_chart["Rootcause"] = df_chart["Rootcause"].apply(lambda x: wrap_labels(x, width=15))
 
             df_melted = df_chart.melt(
-                id_vars=["Rootcause"], value_vars=week_cols_main, var_name="Week", value_name="Count"
+                id_vars=["Rootcause"], value_vars=week_cols, var_name="Week", value_name="Count"
             )
             
             fig1 = px.bar(
                 df_melted, x="Rootcause", y="Count", color="Week", barmode="group",
-                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors_main
+                text="Count", title="Box Issues Weekly Fixed Report", color_discrete_map=chart_colors
             )
             fig1.update_traces(textposition="outside", textfont_size=12)
             fig1.update_layout(
